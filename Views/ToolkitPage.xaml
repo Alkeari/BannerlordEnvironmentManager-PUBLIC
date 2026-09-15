@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ToolkitPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    Loaded="OnPageLoaded"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!-- One row per program BEM is actually gated on. Every row says what the program buys, what
+             works without it, and where the copy on this machine is, so nothing here is a bare name. -->
+        <DataTemplate x:Key="ToolRow" x:DataType="vm:ToolkitRow">
+            <Border Background="{StaticResource AlkSurfaceRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}"
+                    BorderThickness="1" Padding="12" CornerRadius="0" Margin="0,0,0,8">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Bind Name}" Style="{StaticResource SubHeadingText}" IsTextSelectionEnabled="True"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               ToolTipService.ToolTip="{x:Bind Name}" />
+                    <TextBlock Text="{x:Bind Capability}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Text="{x:Bind StatusText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Text="{x:Bind InstalledPath, Mode=OneWay}" Style="{StaticResource BodyText}"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                               ToolTipService.ToolTip="{x:Bind InstalledPath, Mode=OneWay}"
+                               Visibility="{x:Bind InstalledPath, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                    <TextBlock Text="{x:Bind Note, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                               Visibility="{x:Bind Note, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button loc:Loc.Content="Toolkit.InstallButton" Command="{x:Bind InstallCommand}" Style="{StaticResource Action}"
+                                loc:Loc.Tooltip="Toolkit.InstallButton.Tooltip"
+                                Visibility="{x:Bind CanInstall, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                        <Button loc:Loc.Content="Toolkit.RemoveButton" Command="{x:Bind UninstallCommand}" Style="{StaticResource Action}"
+                                loc:Loc.Tooltip="Toolkit.RemoveButton.Tooltip"
+                                Visibility="{x:Bind CanUninstall, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                        <Button loc:Loc.Content="Toolkit.DownloadPageButton" Command="{x:Bind OpenHomePageCommand}" Style="{StaticResource Action}"
+                                loc:Loc.Tooltip="Toolkit.DownloadPageButton.Tooltip" />
+                        <ProgressRing IsActive="{x:Bind IsBusy, Mode=OneWay}" Width="20" Height="20" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Padding="20,14,20,16">
+        <Grid RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="Toolkit.Title" BlurbKey="Toolkit.Blurb" />
+
+            <StackPanel Grid.Row="1" Spacing="6">
+                <TextBlock Text="{x:Bind ViewModel.InstallerNote, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                           Visibility="{x:Bind ViewModel.InstallerNote, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                <TextBlock Text="{x:Bind ViewModel.LedgerNote, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                           Visibility="{x:Bind ViewModel.LedgerNote, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+            </StackPanel>
+
+            <Border Grid.Row="2" Background="{StaticResource AlkSurfaceBrush}" Padding="12" CornerRadius="0"
+                    BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.Tools}" ItemTemplate="{StaticResource ToolRow}" />
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

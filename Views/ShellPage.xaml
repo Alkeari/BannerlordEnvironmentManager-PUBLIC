@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ShellPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <!-- The pane defaults are built for a list far longer than this one, so six items sat small
+             and tight in a wide pane. The compact width stays at 48 so the collapsed icon strip
+             still lines up. -->
+        <x:Double x:Key="NavigationViewItemOnLeftMinHeight">44</x:Double>
+
+        <Style x:Key="ShellNavItem" TargetType="NavigationViewItem">
+            <Setter Property="FontFamily" Value="{StaticResource AlkUiFontFamily}" />
+            <Setter Property="FontSize" Value="{StaticResource AppFontSize}" />
+        </Style>
+    </Page.Resources>
+
+    <!-- Every label was measured against this width rather than the longest one being eyeballed. A
+         NavigationViewItem spends OpenPaneLength minus 74 before the text starts: 8 button margin,
+         14 content grid, 40 icon column, 12 content presenter margin. A nested item loses another
+         25 to its indent. At 248 that left "SubModule Validator" 149px for 139px of text at
+         FontSize 15, and a scrollbar or a rounding is enough to clip it. The body step is 14 now,
+         so every label has more room than that measurement gave it. At 296 the widest nested
+         label has 58px spare and the widest top-level label 138px, so a longer label than any of
+         these still fits. CompactPaneLength stays 48: the collapsed icon strip does not change. -->
+    <Grid>
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- Across the whole window rather than inside a page, so the notice is seen wherever BEM opens
+         and takes no page's space once it is closed. -->
+    <Border x:Name="BemUpdateBar" Grid.Row="0" Visibility="Collapsed"
+            Background="{StaticResource AlkRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}"
+            BorderThickness="0,0,0,1" Padding="16,8">
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="BemUpdateText" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                       VerticalAlignment="Center" IsTextSelectionEnabled="True" />
+            <Button Grid.Column="1" loc:Loc.Content="Shell.BemUpdate.OpenPage" Style="{StaticResource PrimaryAction}"
+                    loc:Loc.Tooltip="Shell.BemUpdate.OpenPage.Tooltip" Click="OnBemUpdateOpenPage" />
+            <Button Grid.Column="2" loc:Loc.Content="Shell.BemUpdate.Skip" Style="{StaticResource Action}"
+                    loc:Loc.Tooltip="Shell.BemUpdate.Skip.Tooltip" Click="OnBemUpdateSkip" />
+            <Button Grid.Column="3" Style="{StaticResource Quiet}"
+                    loc:Loc.Tooltip="Shell.BemUpdate.Close.Tooltip" Click="OnBemUpdateClose">
+                <FontIcon Glyph="&#xE711;" FontSize="12" />
+            </Button>
+        </Grid>
+    </Border>
+
+    <NavigationView x:Name="Navigation" Grid.Row="1"
+                    IsBackButtonVisible="Collapsed"
+                    IsSettingsVisible="False"
+                    PaneDisplayMode="Left"
+                    OpenPaneLength="296"
+                    CompactPaneLength="48"
+                    ItemInvoked="OnItemInvoked"
+                    Loaded="OnLoaded">
+        <NavigationView.MenuItems>
+            <NavigationViewItem loc:Loc.Content="Environment.Title" Tag="Environment" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Play.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE768;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Versions.Title" Tag="Versions" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Versions.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE7B8;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Install.Title" Tag="Install" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Library.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE896;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Health.Title" Tag="Health" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Health.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE946;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="ForensicsItem" loc:Loc.Content="Forensics.Title" Tag="Forensics" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Forensics.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE9D9;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Saves.Title" Tag="Saves" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Saves.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE74E;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem loc:Loc.Content="Settings.Title" Tag="Settings" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Settings.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE713;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
+        <Frame x:Name="ContentFrame" Navigated="OnContentFrameNavigated" NavigationFailed="OnContentFrameNavigationFailed" />
+    </NavigationView>
+    </Grid>
+</Page>

@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:BannerlordEnvironmentManager"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:views="using:BannerlordEnvironmentManager.Views"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToOpacityConverter x:Key="BoolToOpacity" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="TextToVisibility" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibility" />
+    </Page.Resources>
+
+    <ScrollViewer Padding="20,14,20,16">
+        <StackPanel Spacing="12">
+            <controls:PageHeader TitleKey="Settings.Title" BlurbKey="Settings.Blurb" />
+            <!-- The version a bug report needs, somewhere a user can be told to read it out. The
+                 title bar carries the same value; this one is selectable. -->
+            <TextBlock Text="{x:Bind AppVersionText}" Style="{StaticResource MetaText}" IsTextSelectionEnabled="True"
+                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                       ToolTipService.ToolTip="{x:Bind AppVersionText}" />
+            <CheckBox loc:Loc.Content="Settings.ReplaceModuleFoldersCheckBox"
+                      IsChecked="{x:Bind ViewModel.ReplaceExistingModuleFolders, Mode=TwoWay}"
+                      Style="{StaticResource AlkCheckBox}"
+                      loc:Loc.Tooltip="Settings.ReplaceModuleFoldersCheckBox.Tooltip" />
+            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                       Foreground="{StaticResource AlkSteelGrayBrush}"
+                       loc:Loc.Text="Settings.ReplaceModuleFoldersNote" />
+            <CheckBox loc:Loc.Content="Settings.DeleteArchivesCheckBox"
+                      IsChecked="{x:Bind ViewModel.DeleteArchivesAfterInstall, Mode=TwoWay}"
+                      Style="{StaticResource AlkCheckBox}"
+                      loc:Loc.Tooltip="Settings.DeleteArchivesCheckBox.Tooltip" />
+            <CheckBox loc:Loc.Content="Settings.SearchArchivesRecursivelyCheckBox"
+                      IsChecked="{x:Bind ViewModel.SearchArchivesRecursively, Mode=TwoWay}"
+                      Style="{StaticResource AlkCheckBox}"
+                      loc:Loc.Tooltip="Settings.SearchArchivesRecursivelyCheckBox.Tooltip" />
+            <CheckBox loc:Loc.Content="Settings.InstallSelectedOnlyCheckBox"
+                      IsChecked="{x:Bind ViewModel.InstallSelectedOnly, Mode=TwoWay}"
+                      Style="{StaticResource AlkCheckBox}"
+                      loc:Loc.Tooltip="Settings.InstallSelectedOnlyCheckBox.Tooltip" />
+
+            <TextBlock loc:Loc.Text="Settings.FoldersSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+            <TextBlock loc:Loc.Text="Settings.FoldersSection.Blurb" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="4">
+                    <TextBlock loc:Loc.Text="Settings.GameInstallFolder" Style="{StaticResource LabelText}" />
+                    <TextBox Text="{x:Bind ViewModel.GameInstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             loc:Loc.Placeholder="Settings.GameInstallFolder.Placeholder"
+                             loc:Loc.Tooltip="Settings.GameInstallFolder.Tooltip" />
+                </StackPanel>
+                <Button Grid.Column="1" loc:Loc.Content="Settings.BrowseGameInstallFolderButton" Command="{x:Bind ViewModel.BrowseInstallFolderCommand}"
+                        Style="{StaticResource Action}" Width="140" VerticalAlignment="Bottom"
+                        loc:Loc.Tooltip="Settings.BrowseGameInstallFolderButton.Tooltip" />
+            </Grid>
+
+            <Grid ColumnSpacing="12" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="4">
+                    <TextBlock loc:Loc.Text="Settings.ArchivesFolder" Style="{StaticResource LabelText}" />
+                    <TextBox Text="{x:Bind ViewModel.ArchivesFolderPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             loc:Loc.Placeholder="Settings.ArchivesFolder.Placeholder"
+                             loc:Loc.Tooltip="Settings.ArchivesFolder.Tooltip" />
+                </StackPanel>
+                <Button Grid.Column="1" loc:Loc.Content="Settings.BrowseArchivesFolderButton" Command="{x:Bind ViewModel.BrowseArchivesFolderCommand}"
+                        Style="{StaticResource Action}" Width="160" VerticalAlignment="Bottom"
+                        loc:Loc.Tooltip="Settings.BrowseArchivesFolderButton.Tooltip" />
+            </Grid>
+
+            <TextBlock loc:Loc.Text="Settings.DisplaySection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+
+            <!-- Presentation, not capability. Nothing is disabled by leaving this off and nothing
+                 stops running - Basic hides the investigative and power-user surfaces, never a
+                 finding and never a feature that is doing work - which is the only reason a useful
+                 setting may default off. -->
+            <CheckBox loc:Loc.Content="Settings.AdvancedModeCheckBox"
+                      IsChecked="{x:Bind NavigationSettings.IsAdvancedMode, Mode=OneWay}"
+                      Click="OnAdvancedModeToggled"
+                      Style="{StaticResource AlkCheckBox}"
+                      loc:Loc.Tooltip="Settings.AdvancedModeCheckBox.Tooltip" />
+
+            <ComboBox x:Name="RowDensityCombo" loc:Loc.Header="Settings.ModuleRowDensityCombo" SelectedIndex="1"
+                      SelectionChanged="OnRowDensityChanged" Style="{StaticResource AlkComboBox}"
+                      loc:Loc.Tooltip="Settings.ModuleRowDensityCombo.Tooltip">
+                <ComboBoxItem loc:Loc.Content="Settings.ModuleRowDensityCombo.Compact" Tag="Compact" />
+                <ComboBoxItem loc:Loc.Content="Settings.ModuleRowDensityCombo.Standard" Tag="Standard" />
+                <ComboBoxItem loc:Loc.Content="Settings.ModuleRowDensityCombo.Comfortable" Tag="Comfortable" />
+            </ComboBox>
+
+            <ComboBox x:Name="LanguageCombo"
+                      loc:Loc.Header="Settings.Language"
+                      DisplayMemberPath="NativeName"
+                      SelectionChanged="OnLanguageChanged"
+                      Style="{StaticResource AlkComboBox}"
+                      loc:Loc.Tooltip="Settings.Language.Tooltip" />
+
+            <!-- The machine tools and the load-order override are power-user surfaces: Advanced only. -->
+            <StackPanel Spacing="12" Visibility="{x:Bind views:PageDensity.Advanced(NavigationSettings.IsAdvancedMode), Mode=OneWay}">
+                <TextBlock loc:Loc.Text="Settings.ToolsSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+                <TextBlock loc:Loc.Text="Settings.ToolsSection.Blurb" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button loc:Loc.Content="Settings.UnblockFilesButton" Click="OnOpenTools" Tag="Unblock" Style="{StaticResource Action}"
+                            loc:Loc.Tooltip="Settings.UnblockFilesButton.Tooltip" />
+                    <Button loc:Loc.Content="ModSettings.Title" Click="OnOpenTools" Tag="ModSettings" Style="{StaticResource Action}"
+                            loc:Loc.Tooltip="Settings.ModSettingsButton.Tooltip" />
+                    <Button loc:Loc.Content="Toolkit.Title" Click="OnOpenTools" Tag="Toolkit" Style="{StaticResource Action}"
+                            loc:Loc.Tooltip="Settings.ToolkitButton.Tooltip" />
+                </StackPanel>
+
+                <TextBlock loc:Loc.Text="Settings.LoadOrderSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+
+                <CheckBox loc:Loc.Content="Settings.PermitManualOverrideCheckBox"
+                          IsChecked="{x:Bind EnvironmentViewModel.PermitManualLoadOrderOverride, Mode=TwoWay}"
+                          Style="{StaticResource AlkCheckBox}"
+                          loc:Loc.Tooltip="Settings.PermitManualOverrideCheckBox.Tooltip" />
+
+                <TextBlock Text="{x:Bind EnvironmentViewModel.ManualOverrideNote, Mode=OneWay}"
+                           Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           Foreground="{StaticResource AlkSteelGrayBrush}" />
+
+                <CheckBox loc:Loc.Content="Settings.KeepDividersAnchoredCheckBox"
+                          IsChecked="{x:Bind SettingsViewModel.KeepDividersAnchoredOnAutoSort, Mode=TwoWay}"
+                          Style="{StaticResource AlkCheckBox}"
+                          loc:Loc.Tooltip="Settings.KeepDividersAnchoredCheckBox.Tooltip" />
+            </StackPanel>
+
+            <TextBlock loc:Loc.Text="Settings.SharedGameSettingsSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+            <TextBlock loc:Loc.Text="Settings.SharedGameSettingsSection.Blurb" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+
+            <CheckBox loc:Loc.Content="Settings.ShareGameSettingsCheckBox"
+                      IsChecked="{x:Bind SettingsViewModel.ShareGameSettings, Mode=TwoWay}"
+                      Style="{StaticResource AlkCheckBox}"
+                      loc:Loc.Tooltip="Settings.ShareGameSettingsCheckBox.Tooltip" />
+
+            <TextBlock Text="{x:Bind SettingsViewModel.SharedGameSettingsStatusMessage, Mode=OneWay}"
+                       Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                       Foreground="{StaticResource AlkSteelGrayBrush}" />
+
+            <TextBlock loc:Loc.Text="Settings.DiagnosticsSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+            <TextBlock loc:Loc.Text="Settings.DiagnosticsSection.Blurb" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+            <Button loc:Loc.Content="Settings.OpenLogsFolderButton" Command="{x:Bind ViewModel.OpenLogsFolderCommand}" Style="{StaticResource Action}" HorizontalAlignment="Left"
+                    loc:Loc.Tooltip="Settings.OpenLogsFolderButton.Tooltip" />
+
+            <TextBlock loc:Loc.Text="Settings.LaunchSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+
+            <StackPanel Spacing="6">
+                <TextBlock loc:Loc.Text="Settings.LaunchTarget" Style="{StaticResource LabelText}" />
+                <ComboBox ItemsSource="{x:Bind EnvironmentViewModel.AvailableTargets}"
+                          SelectedItem="{x:Bind EnvironmentViewModel.SelectedTarget, Mode=TwoWay}"
+                          DisplayMemberPath="DisplayName"
+                          Style="{StaticResource AlkComboBox}"
+                          MinWidth="260"
+                          loc:Loc.Tooltip="Settings.LaunchTargetCombo.Tooltip" />
+            </StackPanel>
+
+            <StackPanel Spacing="6" Visibility="{x:Bind views:PageDensity.Advanced(NavigationSettings.IsAdvancedMode), Mode=OneWay}">
+                <TextBlock loc:Loc.Text="Settings.ExtraLaunchArguments" Style="{StaticResource LabelText}" />
+                <TextBox Text="{x:Bind EnvironmentViewModel.ExtraArguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         loc:Loc.Placeholder="Settings.ExtraLaunchArguments.Placeholder" MinWidth="360"
+                         Style="{StaticResource AlkTextBox}"
+                         loc:Loc.Tooltip="Settings.ExtraLaunchArguments.Tooltip" />
+            </StackPanel>
+
+            <CheckBox loc:Loc.Content="Settings.MinimizeOnLaunchCheckBox"
+                      IsChecked="{x:Bind EnvironmentViewModel.MinimizeOnLaunch, Mode=TwoWay}"
+                      Style="{StaticResource AlkCheckBox}"
+                      loc:Loc.Tooltip="Settings.MinimizeOnLaunchCheckBox.Tooltip" />
+
+            <StackPanel Spacing="12" Visibility="{x:Bind views:PageDensity.Advanced(NavigationSettings.IsAdvancedMode), Mode=OneWay}">
+            <TextBlock loc:Loc.Text="Settings.CrashHandlingSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+
+            <StackPanel x:Name="CrashHandlerOptions" x:FieldModifier="internal" Spacing="8"
+                        Opacity="{x:Bind EnvironmentViewModel.CrashHandlingAppliesToTarget, Mode=OneWay, Converter={StaticResource BoolToOpacity}}"
+                        ToolTipService.ToolTip="{x:Bind EnvironmentViewModel.CrashHandlingNote, Mode=OneWay}">
+                <TextBlock Text="{x:Bind EnvironmentViewModel.CrashHandlingNote, Mode=OneWay}"
+                           Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+
+                <CheckBox loc:Loc.Content="Settings.KeepVanillaCrashHandlerCheckBox"
+                          IsChecked="{x:Bind EnvironmentViewModel.UseVanillaCrashHandler, Mode=TwoWay}"
+                          Style="{StaticResource AlkCheckBox}"
+                          loc:Loc.Tooltip="Settings.KeepVanillaCrashHandlerCheckBox.Tooltip" />
+
+                <CheckBox loc:Loc.Content="Settings.DisableAutoGenExceptionsCheckBox"
+                          IsChecked="{x:Bind EnvironmentViewModel.DisableAutoGeneratedExceptionCatching, Mode=TwoWay}"
+                          Style="{StaticResource AlkCheckBox}"
+                          loc:Loc.Tooltip="Settings.DisableAutoGenExceptionsCheckBox.Tooltip" />
+
+                <!-- Keep the crash handler on under a debugger used to be the fourth box here. Its
+                     own tooltip disqualifies it for a player: it is only useful if you attach a
+                     debugger to the game. It is in the outer ring now
+                     (DevRing\DeveloperSurfaces.cs), which appends it back to this group. Every
+                     build still sends the flag when the stored setting says to. -->
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                       Foreground="{StaticResource AlkSteelGrayBrush}"
+                       loc:Loc.Text="Settings.CrashHandlingSection.LauncherExNote" />
+
+            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                       Foreground="{StaticResource AlkSteelGrayBrush}"
+                       loc:Loc.Text="Settings.CrashHandlingSection.DisabledOptionsNote" />
+            </StackPanel>
+
+            <!-- Its own destination in the pane was the other option and was rejected: two entries do not
+                 earn a tab on a product whose user already cannot find their own pages, and this is set
+                 up once and then never opened again. Collapsed, it costs one line.
+
+                 Shown in Basic mode as well, because the ".7z needs 7-Zip" error sends the user here and
+                 a user in Basic mode could not find it: the error named a place the mode they were in did
+                 not show. Named "Toolkit" here, on the Toolkit page, in the error strings and in the
+                 README, so the instruction and the place carry the same word. -->
+            <Expander Margin="0,16,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      loc:Loc.AutomationName="Toolkit.Title"
+                      loc:Loc.Tooltip="Settings.ToolkitExpander.Tooltip">
+                <Expander.Header>
+                    <!-- The header is the toggle, so its text opts out; the body stays selectable. -->
+                    <TextBlock loc:Loc.Text="Toolkit.Title" Style="{StaticResource SubHeadingText}" IsTextSelectionEnabled="False" />
+                </Expander.Header>
+
+                <StackPanel Spacing="12" Padding="0,8,0,8">
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.ToolkitExpander.Blurb" />
+
+                    <TextBlock Text="{x:Bind ToolkitViewModel.InstallerNote, Mode=OneWay}"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{StaticResource AlkSteelGrayBrush}" />
+
+                    <Button loc:Loc.Content="Settings.RefreshToolkitButton" Command="{x:Bind ToolkitViewModel.RefreshCommand}"
+                            Style="{StaticResource Action}" HorizontalAlignment="Left"
+                            loc:Loc.Tooltip="Settings.RefreshToolkitButton.Tooltip" />
+
+                    <CheckBox loc:Loc.Content="Settings.InstallSevenZipOnDemandCheckBox"
+                              IsChecked="{x:Bind SettingsViewModel.InstallSevenZipOnDemand, Mode=TwoWay}"
+                              Style="{StaticResource AlkCheckBox}"
+                              loc:Loc.Tooltip="Settings.InstallSevenZipOnDemandCheckBox.Tooltip" />
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.InstallSevenZipOnDemandCheckBox.Note"
+                               Foreground="{StaticResource AlkSteelGrayBrush}" />
+
+                    <!-- Printed before the box is ever ticked, selectable, so it can be read and
+                         declined rather than trusted. -->
+                    <TextBlock Text="{x:Bind SettingsViewModel.SevenZipInstallCommandText}"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               FontFamily="{StaticResource AlkUiFontFamily}" IsTextSelectionEnabled="True"
+                               Foreground="{StaticResource AlkSoftChampagneBrush}" />
+
+                    <ItemsControl ItemsSource="{x:Bind ToolkitViewModel.Tools}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ToolkitRow">
+                                <Border Background="{StaticResource AlkSurfaceRaisedBrush}" Padding="12" Margin="0,0,0,8"
+                                        CornerRadius="0" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource SubHeadingText}"
+                                                   TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                   ToolTipService.ToolTip="{x:Bind Name}" />
+
+                                        <TextBlock Text="{x:Bind Capability}" Style="{StaticResource BodyText}"
+                                                   TextWrapping="Wrap" Foreground="{StaticResource AlkSoftChampagneBrush}" />
+
+                                        <TextBlock Text="{x:Bind StatusText, Mode=OneWay}" Style="{StaticResource BodyText}"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Text="{x:Bind InstalledPath, Mode=OneWay}" Style="{StaticResource BodyText}"
+                                                   TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True"
+                                                   ToolTipService.ToolTip="{x:Bind InstalledPath, Mode=OneWay}"
+                                                   Visibility="{x:Bind InstalledPath, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                                        <TextBlock Text="{x:Bind Note, Mode=OneWay}" Style="{StaticResource BodyText}"
+                                                   TextWrapping="Wrap" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                                   Visibility="{x:Bind Note, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                                        <!-- Printed before the press, selectable, so it can be read and
+                                             declined rather than trusted. -->
+                                        <TextBlock Text="{x:Bind CommandText, Mode=OneWay}" Style="{StaticResource BodyText}"
+                                                   TextWrapping="Wrap" FontFamily="{StaticResource AlkUiFontFamily}" IsTextSelectionEnabled="True"
+                                                   Foreground="{StaticResource AlkSoftChampagneBrush}"
+                                                   Visibility="{x:Bind CommandText, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button loc:Loc.Content="Settings.ToolkitRow.InstallButton" Command="{x:Bind InstallCommand}"
+                                                    Style="{StaticResource PrimaryAction}"
+                                                    Visibility="{x:Bind CanInstall, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                                                    loc:Loc.Tooltip="Settings.ToolkitRow.InstallButton.Tooltip" />
+
+                                            <Button loc:Loc.Content="Settings.ToolkitRow.UninstallButton" Command="{x:Bind UninstallCommand}"
+                                                    Style="{StaticResource DangerAction}"
+                                                    Visibility="{x:Bind CanUninstall, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                                                    loc:Loc.Tooltip="Settings.ToolkitRow.UninstallButton.Tooltip" />
+
+                                            <Button loc:Loc.Content="Settings.ToolkitRow.DownloadPageButton" Command="{x:Bind OpenHomePageCommand}"
+                                                    Style="{StaticResource Action}"
+                                                    loc:Loc.Tooltip="Settings.ToolkitRow.DownloadPageButton.Tooltip" />
+
+                                            <ProgressRing IsActive="{x:Bind IsBusy, Mode=OneWay}" Width="20" Height="20" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="{x:Bind ToolkitViewModel.LedgerNote, Mode=OneWay}"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{StaticResource AlkSteelGrayBrush}" />
+                </StackPanel>
+            </Expander>
+
+            <Expander x:Name="NetworkFeaturesExpander" Margin="0,16,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      loc:Loc.AutomationName="Settings.NetworkFeaturesExpander.Header"
+                      loc:Loc.Tooltip="Settings.NetworkFeaturesExpander.Tooltip">
+                <Expander.Header>
+                    <!-- The header is the toggle, so its text opts out; the body stays selectable. -->
+                    <TextBlock loc:Loc.Text="Settings.NetworkFeaturesExpander.Header" Style="{StaticResource SubHeadingText}" IsTextSelectionEnabled="False" />
+                </Expander.Header>
+
+                <StackPanel Spacing="12" Padding="0,8,0,8">
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.NetworkFeaturesExpander.Blurb" />
+
+                    <TextBlock loc:Loc.Text="Settings.BemUpdateSection" Style="{StaticResource SubHeadingText}" Margin="0,8,0,0" />
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.BemUpdateSection.Blurb" />
+                    <CheckBox loc:Loc.Content="Settings.BemUpdateAtStartupCheckBox"
+                              IsChecked="{x:Bind SettingsViewModel.BemUpdateCheckAtStartup, Mode=TwoWay}"
+                              Style="{StaticResource AlkCheckBox}"
+                              loc:Loc.Tooltip="Settings.BemUpdateAtStartupCheckBox.Tooltip" />
+                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button loc:Loc.Content="Settings.CheckBemUpdateButton" Command="{x:Bind SettingsViewModel.CheckBemUpdateCommand}" Style="{StaticResource Action}"
+                                    loc:Loc.Tooltip="Settings.CheckBemUpdateButton.Tooltip" />
+                            <Button loc:Loc.Content="Settings.OpenBemNexusPageButton" Command="{x:Bind SettingsViewModel.OpenBemPageCommand}" Style="{StaticResource Action}"
+                                    loc:Loc.Tooltip="Settings.OpenBemNexusPageButton.Tooltip" />
+                        </StackPanel>
+                    </ScrollViewer>
+                    <TextBlock Text="{x:Bind SettingsViewModel.BemUpdateStatus, Mode=OneWay}"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               Visibility="{x:Bind SettingsViewModel.BemUpdateStatus, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                    <TextBlock loc:Loc.Text="Settings.NexusUpdateCheckSection" Style="{StaticResource SubHeadingText}" Margin="0,8,0,0" />
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.NexusUpdateCheckSection.Blurb" />
+
+                    <CheckBox loc:Loc.Content="Settings.EnableNexusUpdateCheckCheckBox"
+                              IsChecked="{x:Bind SettingsViewModel.NexusUpdateCheckEnabled, Mode=TwoWay}"
+                              Style="{StaticResource AlkCheckBox}"
+                              loc:Loc.Tooltip="Settings.EnableNexusUpdateCheckCheckBox.Tooltip" />
+
+                    <StackPanel Spacing="6" Visibility="{x:Bind SettingsViewModel.NexusUpdateCheckEnabled, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="Settings.NexusSignInLabel" Style="{StaticResource LabelText}" />
+
+                            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                       loc:Loc.Text="Settings.NexusSignInLabel.Blurb" />
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button loc:Loc.Content="Settings.SignInWithNexusButton" Command="{x:Bind SettingsViewModel.SignInWithNexusCommand}"
+                                        IsEnabled="{x:Bind SettingsViewModel.NexusSsoAvailable}" Style="{StaticResource Action}"
+                                        ToolTipService.ToolTip="{x:Bind SettingsViewModel.NexusSsoButtonTooltip}" />
+                                <Button loc:Loc.Content="Settings.CancelNexusSignInButton" Command="{x:Bind SettingsViewModel.CancelNexusSignInCommand}" Style="{StaticResource Action}"
+                                        loc:Loc.Tooltip="Settings.CancelNexusSignInButton.Tooltip"
+                                        Visibility="{x:Bind SettingsViewModel.NexusSsoBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                <ProgressRing IsActive="{x:Bind SettingsViewModel.NexusSsoBusy, Mode=OneWay}" Width="20" Height="20" />
+                            </StackPanel>
+
+                            <TextBlock Text="{x:Bind SettingsViewModel.NexusSsoMessage, Mode=OneWay}"
+                                       Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                       Visibility="{x:Bind SettingsViewModel.NexusSsoMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                            <TextBlock Text="{x:Bind SettingsViewModel.NexusSsoUnavailableNote}"
+                                       Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                       Foreground="{StaticResource AlkSteelGrayBrush}"
+                                       Visibility="{x:Bind SettingsViewModel.NexusSsoUnavailable, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+
+                        <TextBlock loc:Loc.Text="Settings.NexusApiKeyLabel" Style="{StaticResource LabelText}" Margin="0,8,0,0" />
+
+                        <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                   loc:Loc.Text="Settings.NexusApiKeyLabel.Blurb" />
+
+                        <!-- These button rows come to between 410 and 450 px of text and padding and none of them
+                             shrinks, so a narrow window put the last button past the right edge of a page that only
+                             scrolls vertically. Sideways inside their own containers instead. -->
+                        <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button loc:Loc.Content="Settings.NexusAcceptableUsePolicyButton"
+                                        Command="{x:Bind SettingsViewModel.OpenNexusAcceptableUsePolicyCommand}"
+                                        Style="{StaticResource Action}"
+                                        loc:Loc.Tooltip="Settings.NexusAcceptableUsePolicyButton.Tooltip" />
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button loc:Loc.Content="Settings.CheckNexusApiKeyButton" Command="{x:Bind SettingsViewModel.ValidateApiKeyCommand}" Style="{StaticResource Action}"
+                                    loc:Loc.Tooltip="Settings.CheckNexusApiKeyButton.Tooltip" />
+                            <Button loc:Loc.Content="Settings.RemoveNexusApiKeyButton" Command="{x:Bind SettingsViewModel.RemoveApiKeyCommand}" Style="{StaticResource DangerAction}"
+                                    loc:Loc.Tooltip="Settings.RemoveNexusApiKeyButton.Tooltip"
+                                    Visibility="{x:Bind SettingsViewModel.HasNexusKey, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{x:Bind SettingsViewModel.NexusKeyStatus, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                   Foreground="{StaticResource AlkSteelGrayBrush}" />
+
+                        <StackPanel Spacing="6" Margin="0,8,0,0">
+                            <TextBlock loc:Loc.Text="Settings.NexusPeriodLabel" Style="{StaticResource LabelText}" />
+                            <ComboBox SelectedIndex="{x:Bind SettingsViewModel.NexusPeriodIndex, Mode=TwoWay}" MinWidth="200"
+                                      Style="{StaticResource AlkComboBox}"
+                                      loc:Loc.Tooltip="Settings.NexusPeriodCombo.Tooltip">
+                                <ComboBoxItem loc:Loc.Content="Settings.NexusPeriodCombo.Day" />
+                                <ComboBoxItem loc:Loc.Content="Settings.NexusPeriodCombo.Week" />
+                                <ComboBoxItem loc:Loc.Content="Settings.NexusPeriodCombo.Month" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button loc:Loc.Content="Settings.CheckNexusUpdatesNowButton" Command="{x:Bind SettingsViewModel.CheckNexusUpdatesCommand}" Style="{StaticResource Action}"
+                                    loc:Loc.Tooltip="Settings.CheckNexusUpdatesNowButton.Tooltip" />
+                            <Button loc:Loc.Content="Settings.CancelNexusUpdateCheckButton" Command="{x:Bind SettingsViewModel.CancelNexusCheckCommand}" Style="{StaticResource Action}"
+                                    loc:Loc.Tooltip="Settings.CancelNexusUpdateCheckButton.Tooltip"
+                                    Visibility="{x:Bind SettingsViewModel.NexusBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                            <ProgressRing IsActive="{x:Bind SettingsViewModel.NexusBusy, Mode=OneWay}" Width="20" Height="20" />
+                        </StackPanel>
+
+                        <TextBlock Text="{x:Bind SettingsViewModel.NexusStatusMessage, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                   Visibility="{x:Bind SettingsViewModel.NexusStatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                        <!-- The check used to report itself as one undifferentiated paragraph, so the
+                             tally and the quota figures were buried in each other and neither could be
+                             picked out or copied on its own. Same words, one fact per row. -->
+                        <StackPanel Spacing="4"
+                                    Visibility="{x:Bind SettingsViewModel.NexusResultLines.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                            <TextBlock loc:Loc.Text="Settings.NexusResultsLabel" Style="{StaticResource LabelText}" />
+                            <ItemsControl ItemsSource="{x:Bind SettingsViewModel.NexusResultLines}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock Text="{x:Bind}" Style="{StaticResource BodyText}" TextWrapping="Wrap" Margin="0,1" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        Visibility="{x:Bind SettingsViewModel.NexusDataFetched, Mode=OneWay, Converter={StaticResource TextToVisibility}}">
+                                <TextBlock loc:Loc.Text="Settings.NexusDataFetchedLabel" Style="{StaticResource BodyText}"
+                                           Foreground="{StaticResource AlkSteelGrayBrush}" />
+                                <TextBlock Text="{x:Bind SettingsViewModel.NexusDataFetched, Mode=OneWay}"
+                                           Style="{StaticResource BodyText}"
+                                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{x:Bind SettingsViewModel.NexusDataFetched, Mode=OneWay}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4"
+                                    Visibility="{x:Bind SettingsViewModel.NexusQuotaNote, Mode=OneWay, Converter={StaticResource TextToVisibility}}">
+                            <TextBlock loc:Loc.Text="Settings.NexusQuotaLabel" Style="{StaticResource LabelText}" />
+
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        Visibility="{x:Bind SettingsViewModel.NexusQuotaHourly, Mode=OneWay, Converter={StaticResource TextToVisibility}}">
+                                <TextBlock loc:Loc.Text="Settings.NexusQuotaHourlyLabel" Style="{StaticResource BodyText}" MinWidth="70"
+                                           Foreground="{StaticResource AlkSteelGrayBrush}" />
+                                <TextBlock Text="{x:Bind SettingsViewModel.NexusQuotaHourly, Mode=OneWay}"
+                                           Style="{StaticResource BodyText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{x:Bind SettingsViewModel.NexusQuotaHourly, Mode=OneWay}" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        Visibility="{x:Bind SettingsViewModel.NexusQuotaDaily, Mode=OneWay, Converter={StaticResource TextToVisibility}}">
+                                <TextBlock loc:Loc.Text="Settings.NexusQuotaDailyLabel" Style="{StaticResource BodyText}" MinWidth="70"
+                                           Foreground="{StaticResource AlkSteelGrayBrush}" />
+                                <TextBlock Text="{x:Bind SettingsViewModel.NexusQuotaDaily, Mode=OneWay}"
+                                           Style="{StaticResource BodyText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{x:Bind SettingsViewModel.NexusQuotaDaily, Mode=OneWay}" />
+                            </StackPanel>
+
+                            <TextBlock Text="{x:Bind SettingsViewModel.NexusQuotaNote, Mode=OneWay}"
+                                       Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                       Foreground="{StaticResource AlkSteelGrayBrush}" />
+                        </StackPanel>
+
+                        <ItemsControl ItemsSource="{x:Bind SettingsViewModel.NexusUpdates}"
+                                      Visibility="{x:Bind SettingsViewModel.NexusUpdates.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:NexusUpdateRow">
+                                    <Border Background="{StaticResource AlkSurfaceRaisedBrush}" Padding="10" Margin="0,0,0,6" CornerRadius="0"
+                                            BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{x:Bind ModuleName}" Style="{StaticResource BodyText}"
+                                                       Foreground="{StaticResource AlkSoftChampagneBrush}"
+                                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                       ToolTipService.ToolTip="{x:Bind ModuleName}" />
+                                            <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}"
+                                                       Foreground="{StaticResource AlkSteelGrayBrush}" TextWrapping="Wrap" />
+                                            <HyperlinkButton loc:Loc.Content="Settings.NexusUpdateRow.OpenOnNexusButton" NavigateUri="{x:Bind ModPageUrl}" Padding="0"
+                                                             loc:Loc.Tooltip="Settings.NexusUpdateRow.OpenOnNexusButton.Tooltip" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <TextBlock loc:Loc.Text="Settings.NxmLinksSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.NxmLinksSection.Blurb" />
+
+                    <CheckBox loc:Loc.Content="Settings.EnableNxmHandlerCheckBox"
+                              IsChecked="{x:Bind SettingsViewModel.NxmHandlerEnabled, Mode=TwoWay}"
+                              Style="{StaticResource AlkCheckBox}"
+                              loc:Loc.Tooltip="Settings.EnableNxmHandlerCheckBox.Tooltip" />
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{StaticResource AlkSteelGrayBrush}"
+                               loc:Loc.Text="Settings.NxmLinksSection.VortexNote" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button loc:Loc.Content="Settings.RegisterNxmLinksButton" Command="{x:Bind SettingsViewModel.RegisterNxmLinksCommand}" Style="{StaticResource Action}"
+                                loc:Loc.Tooltip="Settings.RegisterNxmLinksButton.Tooltip" />
+                        <Button loc:Loc.Content="Settings.UnregisterNxmLinksButton" Command="{x:Bind SettingsViewModel.UnregisterNxmLinksCommand}" Style="{StaticResource Action}"
+                                loc:Loc.Tooltip="Settings.UnregisterNxmLinksButton.Tooltip" />
+                    </StackPanel>
+
+                    <TextBlock Text="{x:Bind SettingsViewModel.NxmStatus, Mode=OneWay}"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Visibility="{x:Bind SettingsViewModel.NxmStatus, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                    <TextBlock Text="{x:Bind SettingsViewModel.NxmPreviousHandler, Mode=OneWay}"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{StaticResource AlkSteelGrayBrush}" />
+
+                    <TextBlock Text="{x:Bind SettingsViewModel.NxmArchivesFolder, Mode=OneWay}"
+                               Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{StaticResource AlkSteelGrayBrush}" />
+
+                    <TextBlock loc:Loc.Text="Settings.ButrScoresSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.ButrScoresSection.Blurb" />
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               Foreground="{StaticResource AlkSteelGrayBrush}"
+                               loc:Loc.Text="Settings.ButrScoresSection.Disclaimer" />
+
+                    <CheckBox loc:Loc.Content="Settings.EnableButrScoresCheckBox"
+                              IsChecked="{x:Bind SettingsViewModel.ButrScoresEnabled, Mode=TwoWay}"
+                              Style="{StaticResource AlkCheckBox}"
+                              loc:Loc.Tooltip="Settings.EnableButrScoresCheckBox.Tooltip" />
+
+                    <StackPanel Spacing="6" Visibility="{x:Bind SettingsViewModel.ButrScoresEnabled, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button loc:Loc.Content="Settings.FetchButrScoresButton" Command="{x:Bind SettingsViewModel.FetchButrScoresCommand}" Style="{StaticResource Action}"
+                                        loc:Loc.Tooltip="Settings.FetchButrScoresButton.Tooltip" />
+                                <Button loc:Loc.Content="Settings.CancelButrFetchButton" Command="{x:Bind SettingsViewModel.CancelButrFetchCommand}" Style="{StaticResource Action}"
+                                        loc:Loc.Tooltip="Settings.CancelButrFetchButton.Tooltip"
+                                        Visibility="{x:Bind SettingsViewModel.ButrBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                <Button loc:Loc.Content="Settings.AboutButrServiceButton" Command="{x:Bind SettingsViewModel.OpenButrProjectCommand}" Style="{StaticResource Action}"
+                                        loc:Loc.Tooltip="Settings.AboutButrServiceButton.Tooltip" />
+                                <ProgressRing IsActive="{x:Bind SettingsViewModel.ButrBusy, Mode=OneWay}" Width="20" Height="20" />
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <TextBlock Text="{x:Bind SettingsViewModel.ButrStatusMessage, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                   Visibility="{x:Bind SettingsViewModel.ButrStatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                        <ItemsControl ItemsSource="{x:Bind SettingsViewModel.ButrScores}"
+                                      Visibility="{x:Bind SettingsViewModel.ButrScores.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ButrScoreRow">
+                                    <Border Background="{StaticResource AlkSurfaceRaisedBrush}" Padding="10" Margin="0,0,0,6" CornerRadius="0"
+                                            BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{x:Bind ModuleName}" Style="{StaticResource BodyText}"
+                                                       Foreground="{StaticResource AlkSoftChampagneBrush}"
+                                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                       ToolTipService.ToolTip="{x:Bind ModuleName}" />
+                                            <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}"
+                                                       Foreground="{StaticResource AlkSteelGrayBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{x:Bind SettingsViewModel.ButrModulesWithoutData, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                   Foreground="{StaticResource AlkSteelGrayBrush}"
+                                   Visibility="{x:Bind SettingsViewModel.ButrModulesWithoutData, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                    </StackPanel>
+
+                    <TextBlock loc:Loc.Text="Settings.ButrContributeSection" Style="{StaticResource SubHeadingText}" Margin="0,16,0,0" />
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="Settings.ButrContributeSection.Blurb" />
+
+                    <Button loc:Loc.Content="Settings.OpenCrashReportsButton" Click="OnOpenCrashReports" Style="{StaticResource Action}" HorizontalAlignment="Left"
+                            loc:Loc.Tooltip="Settings.OpenCrashReportsButton.Tooltip" />
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

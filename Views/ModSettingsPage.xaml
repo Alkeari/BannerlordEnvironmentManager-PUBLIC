@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ModSettingsPage"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+    </Page.Resources>
+
+    <ScrollViewer>
+        <StackPanel Padding="20,14,20,16" Spacing="12">
+
+            <controls:PageHeader TitleKey="ModSettings.Title" BlurbKey="ModSettings.Blurb">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button loc:Loc.Content="ModSettings.ScanButton" Command="{x:Bind ViewModel.RefreshCommand}" Style="{StaticResource PrimaryAction}" Width="140"
+                            loc:Loc.Tooltip="ModSettings.ScanButton.Tooltip" />
+                    <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" Width="24" Height="24" />
+                    <TextBlock Text="{x:Bind ViewModel.Summary, Mode=OneWay}" Style="{StaticResource MetaText}"
+                               VerticalAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+            </controls:PageHeader>
+
+            <TextBlock Text="{x:Bind ViewModel.SettingsRoot, Mode=OneWay}" Style="{StaticResource MonoText}" TextWrapping="Wrap" />
+
+            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+
+            <StackPanel Spacing="8">
+                <TextBlock loc:Loc.Text="ModSettings.UnmatchedHeading" Style="{StaticResource SubHeadingText}" />
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           loc:Loc.Text="ModSettings.UnmatchedHeading.Blurb" />
+
+                <Border Background="{StaticResource AlkSurfaceBrush}" Padding="8" CornerRadius="0"
+                        BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                    <ListView ItemsSource="{x:Bind ViewModel.Candidates}" SelectionMode="None"
+                              Background="Transparent" BorderThickness="0" MaxHeight="320">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SettingsCandidateRow">
+                                <Grid Padding="8" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Style="{StaticResource AlkCheckBox}"
+                                              MinWidth="0" VerticalAlignment="Center"
+                                              loc:Loc.Tooltip="ModSettings.CandidateCheckBox.Tooltip" />
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="{x:Bind RelativePath}" Style="{StaticResource SubHeadingText}" />
+                                        <TextBlock Text="{x:Bind Details}" Style="{StaticResource BodyText}" />
+                                        <TextBlock Text="{x:Bind Suggestions}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                        <!-- The user knows which mod wrote a folder in cases BEM cannot reach,
+                                             and their word outranks BEM's inference, so it is kept and labeled as theirs. -->
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                            <ComboBox ItemsSource="{x:Bind Modules}" SelectedItem="{x:Bind ChosenModule, Mode=TwoWay}"
+                                                      DisplayMemberPath="Label" MinWidth="260" loc:Loc.Placeholder="ModSettings.ModuleComboBox.Placeholder"
+                                                      loc:Loc.Tooltip="ModSettings.ModuleComboBox.Tooltip" />
+                                            <Button loc:Loc.Content="ModSettings.RememberButton" Command="{x:Bind AssignCommand}" Style="{StaticResource Action}" Width="120"
+                                                    loc:Loc.Tooltip="ModSettings.RememberButton.Tooltip" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+
+                <Button loc:Loc.Content="ModSettings.ArchiveSelectedButton" Command="{x:Bind ViewModel.ArchiveSelectedCommand}"
+                        Style="{StaticResource Action}" Width="180" HorizontalAlignment="Left"
+                        loc:Loc.Tooltip="ModSettings.ArchiveSelectedButton.Tooltip" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock loc:Loc.Text="ModSettings.MatchedHeading" Style="{StaticResource SubHeadingText}" />
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           loc:Loc.Text="ModSettings.MatchedHeading.Blurb" />
+                <TextBlock Style="{StaticResource BodyText}" Text="{x:Bind ViewModel.AttributionsPath}" TextWrapping="Wrap" />
+
+                <Border Background="{StaticResource AlkSurfaceBrush}" Padding="8" CornerRadius="0"
+                        BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                    <ListView ItemsSource="{x:Bind ViewModel.Matched}" SelectionMode="None"
+                              Background="Transparent" BorderThickness="0" MaxHeight="260">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MatchedSettingsRow">
+                                <Grid Padding="8" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{x:Bind RelativePath}" Style="{StaticResource SubHeadingText}" />
+                                        <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <!-- Only a claim BEM is holding on to can be dropped. Everything else is
+                                         re-derived from the folder on every scan. -->
+                                    <Button Grid.Column="1" loc:Loc.Content="ModSettings.ForgetButton" Command="{x:Bind ForgetCommand}"
+                                            Style="{StaticResource Action}" Width="110" VerticalAlignment="Center"
+                                            Visibility="{x:Bind IsRemembered, Converter={StaticResource BoolToVisibility}}"
+                                            loc:Loc.Tooltip="ModSettings.ForgetButton.Tooltip" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock loc:Loc.Text="ModSettings.EmptyHeading" Style="{StaticResource SubHeadingText}" />
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           loc:Loc.Text="ModSettings.EmptyHeading.Blurb" />
+
+                <Border Background="{StaticResource AlkSurfaceBrush}" Padding="8" CornerRadius="0"
+                        BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                    <ListView ItemsSource="{x:Bind ViewModel.EmptyFolders}" SelectionMode="None"
+                              Background="Transparent" BorderThickness="0" MaxHeight="260">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:EmptySettingsRow">
+                                <Grid Padding="8" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{x:Bind RelativePath}" Style="{StaticResource SubHeadingText}" />
+                                        <TextBlock Text="{x:Bind Details}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{x:Bind Note}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                                   Visibility="{x:Bind Note, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                        <TextBlock Text="{x:Bind FullPath}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" loc:Loc.Content="ModSettings.EmptyRemoveButton" Command="{x:Bind RemoveCommand}"
+                                            Style="{StaticResource DangerAction}" Width="180" VerticalAlignment="Center"
+                                            loc:Loc.Tooltip="ModSettings.EmptyRemoveButton.Tooltip" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock loc:Loc.Text="ModSettings.ArchiveHeading" Style="{StaticResource SubHeadingText}" />
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           loc:Loc.Text="ModSettings.ArchiveHeading.Blurb" />
+                <TextBlock Text="{x:Bind ViewModel.ArchiveRoot, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+
+                <Border Background="{StaticResource AlkSurfaceBrush}" Padding="8" CornerRadius="0"
+                        BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                    <ListView ItemsSource="{x:Bind ViewModel.Archived}" SelectionMode="None"
+                              Background="Transparent" BorderThickness="0" MaxHeight="320">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ArchivedSettingsRow">
+                                <Grid Padding="8" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource SubHeadingText}" />
+                                        <TextBlock Text="{x:Bind Details}" Style="{StaticResource BodyText}" />
+                                        <TextBlock Text="{x:Bind OriginPath}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <!-- The row carries these commands itself. A DataTemplate has its own XAML
+                                             namescope, so ElementName cannot see this page and both buttons were inert. -->
+                                        <Button loc:Loc.Content="ModSettings.RestoreButton" Style="{StaticResource Action}" Width="110"
+                                                loc:Loc.Tooltip="ModSettings.RestoreButton.Tooltip"
+                                                Command="{x:Bind RestoreCommand}" />
+                                        <Button loc:Loc.Content="ModSettings.DeleteButton" Style="{StaticResource DangerAction}" Width="110"
+                                                loc:Loc.Tooltip="ModSettings.DeleteButton.Tooltip"
+                                                Command="{x:Bind DiscardCommand}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+            </StackPanel>
+
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" IsExpanded="False"
+                      loc:Loc.AutomationName="ModSettings.ShareBundleExpander"
+                      loc:Loc.Tooltip="ModSettings.ShareBundleExpander.Tooltip">
+                <Expander.Header>
+                    <!-- The header is the toggle, so its text opts out; the body stays selectable. -->
+                    <TextBlock loc:Loc.Text="ModSettings.ShareBundleExpander" Style="{StaticResource SubHeadingText}" IsTextSelectionEnabled="False" />
+                </Expander.Header>
+                <StackPanel Spacing="16" Padding="0,8,0,8">
+
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               loc:Loc.Text="ModSettings.ShareBundleExpander.Blurb" />
+
+                    <StackPanel Spacing="8">
+                        <TextBlock loc:Loc.Text="ModSettings.ExportHeading" Style="{StaticResource SubHeadingText}" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button loc:Loc.Content="ModSettings.CheckSecretsButton" Command="{x:Bind ViewModel.PrepareExportCommand}"
+                                    Style="{StaticResource Action}" Width="180"
+                                    loc:Loc.Tooltip="ModSettings.CheckSecretsButton.Tooltip" />
+                            <Button loc:Loc.Content="ModSettings.ExportBundleButton" Command="{x:Bind ViewModel.ExportBundleCommand}"
+                                    Style="{StaticResource Action}" Width="160"
+                                    loc:Loc.Tooltip="ModSettings.ExportBundleButton.Tooltip" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.ExportSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+
+                        <Border Background="{StaticResource AlkSurfaceBrush}" Padding="8" CornerRadius="0"
+                                BorderBrush="{StaticResource AlkAlertAmberBrush}" BorderThickness="1">
+                            <ListView ItemsSource="{x:Bind ViewModel.ExportFlagged}" SelectionMode="None"
+                                      Background="Transparent" BorderThickness="0" MaxHeight="260">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BundleFileRow">
+                                        <Grid Padding="8" ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Style="{StaticResource AlkCheckBox}"
+                                                      MinWidth="0" VerticalAlignment="Center"
+                                                      loc:Loc.Tooltip="ModSettings.ExportFlaggedCheckBox.Tooltip" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="{x:Bind RelativePath}" Style="{StaticResource SubHeadingText}" />
+                                                <TextBlock Text="{x:Bind Findings}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                                           Foreground="{StaticResource AlkAlertAmberBrush}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock loc:Loc.Text="ModSettings.ImportHeading" Style="{StaticResource SubHeadingText}" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button loc:Loc.Content="ModSettings.ChooseBundleButton" Command="{x:Bind ViewModel.ChooseBundleCommand}"
+                                    Style="{StaticResource Action}" Width="180"
+                                    loc:Loc.Tooltip="ModSettings.ChooseBundleButton.Tooltip" />
+                            <Button loc:Loc.Content="ModSettings.ApplyBundleButton" Command="{x:Bind ViewModel.ImportBundleCommand}"
+                                    Style="{StaticResource Action}" Width="160"
+                                    loc:Loc.Tooltip="ModSettings.ApplyBundleButton.Tooltip" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.ImportSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+
+                        <Border Background="{StaticResource AlkSurfaceBrush}" Padding="8" CornerRadius="0"
+                                BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                            <ListView ItemsSource="{x:Bind ViewModel.ImportEntries}" SelectionMode="None"
+                                      Background="Transparent" BorderThickness="0" MaxHeight="300">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ImportEntryRow">
+                                        <Grid Padding="8" ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Style="{StaticResource AlkCheckBox}"
+                                                      MinWidth="0" VerticalAlignment="Center" IsEnabled="{x:Bind IsFlagged}"
+                                                      loc:Loc.Tooltip="ModSettings.ImportEntriesCheckBox.Tooltip" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="{x:Bind RelativePath}" Style="{StaticResource SubHeadingText}" />
+                                                <TextBlock Text="{x:Bind Details}" Style="{StaticResource BodyText}" />
+                                                <TextBlock Text="{x:Bind Findings}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                                           Foreground="{StaticResource AlkAlertAmberBrush}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

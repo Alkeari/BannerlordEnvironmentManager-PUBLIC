@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.InstallChecksPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    Loaded="OnPageLoaded"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!-- The remedy half of a known issue. A row with a mechanical fix carries the button that
+             applies it; a row with none says in one sentence what to do instead and shows no button. -->
+        <DataTemplate x:Key="IssueAction" x:DataType="vm:KnownIssueActionViewModel">
+            <Button Content="{x:Bind Label}" Command="{x:Bind Command}" CommandParameter="{x:Bind Parameter}"
+                    Style="{StaticResource Action}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                    ToolTipService.ToolTip="{x:Bind Tooltip}" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="KnownIssueRow" x:DataType="vm:KnownIssueRowViewModel">
+            <Border Background="{StaticResource AlkSurfaceRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Padding="10" CornerRadius="0" Margin="0,0,0,8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind Heading}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" ToolTipService.ToolTip="{x:Bind Heading}" />
+                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Text="{x:Bind Note}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}" Visibility="{x:Bind Note, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                    <ItemsControl ItemsSource="{x:Bind Actions}" ItemTemplate="{StaticResource IssueAction}"
+                                  Visibility="{x:Bind Actions.Count, Converter={StaticResource CountToVisibility}}" />
+                    <Button loc:Loc.Content="InstallChecks.AcceptRiskButton" Click="OnAcceptFindingClicked" Tag="{x:Bind}"
+                            Style="{StaticResource Action}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                            loc:Loc.Tooltip="InstallChecks.AcceptRiskButton.Tooltip"
+                            Visibility="{x:Bind CanAcceptRisk, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- The choice half of the rig remedy. Both mods are named, both are evidenced, and the buttons
+             sit side by side because BEM has no basis for preferring one. -->
+        <DataTemplate x:Key="RigConflictRow" x:DataType="vm:RigConflictRowViewModel">
+            <Border Background="{StaticResource AlkSurfaceRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Padding="10" CornerRadius="0" Margin="0,0,0,8">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Bind Heading}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" ToolTipService.ToolTip="{x:Bind Heading}" />
+                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Text="{x:Bind Note}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}" />
+                    <ItemsControl ItemsSource="{x:Bind Choices}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RigChoiceViewModel">
+                                <StackPanel Spacing="2" Margin="0,6,0,0">
+                                    <Button Content="{x:Bind Label}" Command="{x:Bind Command}" CommandParameter="{x:Bind ModuleId}"
+                                            Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                            loc:Loc.Tooltip="InstallChecks.RigChoiceButton.Tooltip" />
+                                    <TextBlock Text="{x:Bind Evidence}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}" />
+                                    <TextBlock Text="{x:Bind AppliedLastNote}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                               Visibility="{x:Bind AppliedLastNote, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button loc:Loc.Content="InstallChecks.AcceptRiskButton" Click="OnAcceptFindingClicked" Tag="{x:Bind}"
+                            Style="{StaticResource Action}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                            loc:Loc.Tooltip="InstallChecks.AcceptRiskButton.Tooltip"
+                            Visibility="{x:Bind CanAcceptRisk, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Padding="20,14,20,16">
+        <Grid RowSpacing="12">
+            <!-- The findings panel is what this page exists for. What used to take its height was the
+                 status in the header, which is written when the panel is fullest; it is capped to one
+                 line now, so this row is simply what is left and shrinks smoothly with the window,
+                 down to nothing without pushing anything off. That is the order these regions give up
+                 size in: the header keeps its height, the panel absorbs the difference and scrolls
+                 inside whatever it has. -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="InstallChecks.Title" BlurbKey="InstallChecks.Blurb">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button loc:Loc.Content="InstallChecks.CheckInstallButton" Command="{x:Bind DiagnosticsViewModel.CheckInstallCommand}" Style="{StaticResource PrimaryAction}" MinWidth="200"
+                            loc:Loc.Tooltip="InstallChecks.CheckInstallButton.Tooltip" />
+                    <ProgressRing IsActive="{x:Bind DiagnosticsViewModel.IsCheckingInstall, Mode=OneWay}" Width="28" Height="28" />
+                    <!-- Capped and trimmed to one line. The header's actions slot is a horizontal
+                         StackPanel, which measures what it holds against an unbounded width, so Wrap
+                         never fired here: a long status simply ran the row past the header and over
+                         the title beside it. The whole message is on the hover. -->
+                    <TextBlock Text="{x:Bind DiagnosticsViewModel.KnownIssuesStatus, Mode=OneWay}" Style="{StaticResource BodyText}"
+                               MaxWidth="360" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}" VerticalAlignment="Center"
+                               ToolTipService.ToolTip="{x:Bind DiagnosticsViewModel.KnownIssuesStatus, Mode=OneWay}" />
+                </StackPanel>
+            </controls:PageHeader>
+
+
+            <Border Grid.Row="1" Background="{StaticResource AlkSurfaceBrush}" Padding="12" CornerRadius="0" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1"
+                    ContextRequested="OnKnownIssueContextRequested">
+                <!-- These rows sit in plain ItemsControls, which have no flyout of their own, so the
+                     panel carries one flyout and the click is walked back to the row it landed on.
+                     A click that lands on the prose between sections resolves to no row and every
+                     item is disabled. -->
+                <Border.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem loc:Loc.Text="InstallChecks.CopyIssueMenuItem" Command="{x:Bind DiagnosticsViewModel.CopyIssueCommand}"
+                                        loc:Loc.Tooltip="InstallChecks.CopyIssueMenuItem.Tooltip" />
+                        <MenuFlyoutItem loc:Loc.Text="InstallChecks.OpenModuleFolderMenuItem" Command="{x:Bind DiagnosticsViewModel.OpenIssueModuleFolderCommand}"
+                                        loc:Loc.Tooltip="InstallChecks.OpenModuleFolderMenuItem.Tooltip" />
+                        <MenuFlyoutItem loc:Loc.Text="InstallChecks.ShowOnPlayMenuItem" Command="{x:Bind DiagnosticsViewModel.ShowIssueModuleOnPlayTabCommand}"
+                                        loc:Loc.Tooltip="InstallChecks.ShowOnPlayMenuItem.Tooltip" />
+                    </MenuFlyout>
+                </Border.ContextFlyout>
+                <ScrollViewer>
+                    <StackPanel Spacing="16" MaxWidth="1100" HorizontalAlignment="Left">
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.RigConflictsHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.RigConflictsHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.RigIssuesEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.RigIssuesEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.RigConflictRows}" ItemTemplate="{StaticResource RigConflictRow}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.RigIssues}" ItemTemplate="{StaticResource KnownIssueRow}" />
+
+                            <!-- The automatable half: a pure reorder the engine's own merge code makes
+                                 mandatory. The button is enabled only when the order actually breaks it. -->
+                            <StackPanel Spacing="6">
+                                <TextBlock loc:Loc.Text="InstallChecks.NativeSortHeading" Style="{StaticResource SubHeadingText}"
+                                           loc:Loc.Tooltip="InstallChecks.NativeSortHeading.Tooltip" />
+                                <TextBlock Text="{x:Bind DiagnosticsViewModel.RigOrderStatusText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                           Visibility="{x:Bind DiagnosticsViewModel.RigOrderStatusText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                <Button loc:Loc.Content="InstallChecks.MoveNativeButton" Command="{x:Bind DiagnosticsViewModel.ApplyRigOrderFixCommand}" Style="{StaticResource Action}"
+                                        HorizontalAlignment="Left"
+                                        loc:Loc.Tooltip="InstallChecks.MoveNativeButton.Tooltip" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- A mod that ships one assembly per game version, none of them for the game
+                             that is installed, is visible without launching anything. It is read from
+                             the file names in the mod's own bin folder against Native's version. -->
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.VersionGapsHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.VersionGapsHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.VersionGapsEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.VersionGapsEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <!-- The grading, once, above the rows. A game newer than the mod is the normal
+                                 state days after a patch and the loader falls back, so those rows are notes
+                                 rather than known issues and say so before the user reads five of them. -->
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.VersionGapsGradingText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Foreground="{StaticResource AlkSteelGrayBrush}"
+                                       Visibility="{x:Bind DiagnosticsViewModel.VersionGapsGradingText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.VersionGaps}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.ShadowedAssembliesHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.ShadowedAssembliesHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.AssemblyIssuesEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.AssemblyIssuesEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.AssemblyIssues}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <!-- Read from the patch attributes in each enabled module's own assemblies and
+                             checked against the types actually installed. Harmony throws the moment it
+                             cannot resolve a target, and that takes the whole module's PatchAll with it. -->
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.HarmonyPatchesHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.HarmonyPatchesHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.HarmonyPatchIssuesEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.HarmonyPatchIssuesEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.HarmonyPatchIssues}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.HarmonyPatchesUncheckedText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                       Visibility="{x:Bind DiagnosticsViewModel.HarmonyPatchesUncheckedText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                        </StackPanel>
+
+                        <!-- A mod that shipped the game's own assemblies alongside its own. Harmless when
+                             the copies match, and the thing that binds instead of the real one when they
+                             do not. Neither case was visible before: the duplicate check only ever
+                             compared mods against each other. -->
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.GameAssemblyCopiesHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.GameAssemblyCopiesHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.GameAssemblyCopiesEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.GameAssemblyCopiesEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.GameAssemblyCopies}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <!-- Two folders under Modules declaring one module id. The game refuses to
+                             load and its error names neither folder, so this section names both in
+                             full and dates each one. It removes nothing: the pair is usually a mod
+                             build that rolled back, and only its owner knows which copy to keep. -->
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.DuplicateIdsHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.DuplicateIdsHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.DuplicateIdsEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.DuplicateIdsEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.DuplicateIds}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.ShadowedModulesHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.ShadowedModulesHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.ShadowedModulesEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.ShadowedModulesEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.ShadowedModules}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock loc:Loc.Text="InstallChecks.DisplayAdaptersHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="InstallChecks.DisplayAdaptersHeading.Tooltip" />
+                            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                       loc:Loc.Text="InstallChecks.DisplayAdaptersHeading.Blurb" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.GraphicsAdaptersEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind DiagnosticsViewModel.GraphicsAdaptersEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.GraphicsAdapters}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

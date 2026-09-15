@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <Version>3.5.0</Version>
+        <Product>Bannerlord Environment Manager</Product>
+        <Company>Alkeari Labs LLC</Company>
+        <Authors>Alkeari Labs LLC</Authors>
+        <Copyright>Copyright © 2026 Alkeari Labs LLC</Copyright>
+        <Description>The all-in-one desktop utility for Mount &amp; Blade II: Bannerlord mod users: install, order, launch, and diagnose a modded game.</Description>
+        <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+        <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+        <OutputType>WinExe</OutputType>
+
+        <!-- WinUI 3 -->
+        <UseWinUI>true</UseWinUI>
+        <WindowsPackageType>None</WindowsPackageType>
+        <!-- Required by Microsoft.WindowsAppSDK.Base for PublishSingleFile's resources.pri generation. -->
+        <EnableMsixTooling>true</EnableMsixTooling>
+        <!-- <WindowsSdkPackageVersion>10.0.19041.38</WindowsSdkPackageVersion> -->
+
+        <!-- Project Options -->
+        <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>BannerlordEnvironmentManager</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- App Options -->
+        <UseRidGraph>true</UseRidGraph>
+        <Platforms>x86;x64;ARM64</Platforms>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <PublishProfile Condition="Exists('Properties\\PublishProfiles\\win-$(Platform).pubxml')">win-$(Platform).pubxml</PublishProfile>
+        <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &gt;= 8">win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+        <RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &lt; 8">win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
+        <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+        <ApplicationIcon>Assets\Bannerlord Environment Manager - Icon.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <!-- The outer ring: BEM < BEM with Advanced Mode < Dev-BEM. Everything in the first two is in
+         all three; what this switch adds is present in Dev-BEM alone.
+
+         The assignment is unconditional on purpose. A property MSBuild takes from the environment is
+         overridden by a project-level assignment, so an environment variable called DevBem can never
+         turn the ring on; a global property (-p:DevBem=true on the command line) is the one thing
+         that outranks this line, which makes a deliberate switch the only way in. Build-Dev.ps1 is
+         that switch. publish\nexus.json passes -p:DevBem=false so the release path states it too,
+         and the four publish profiles restate it for a profile-driven publish. -->
+    <PropertyGroup>
+        <DevBem>false</DevBem>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(DevBem)'=='true'">
+        <DefineConstants>$(DefineConstants);DEV_BEM</DefineConstants>
+    </PropertyGroup>
+
+    <!-- The developer exe is named apart at build time, not by renaming it afterwards.
+         An unpackaged WinUI 3 app reads its own XAML out of a PRI file that MSBuild names after the
+         assembly ($(TargetName).pri), and at run time the lookup is keyed on the name of the running
+         executable. Rename the exe once it is built and every ms-appx:/// path stops resolving: the
+         app starts, logs, and dies on its first page with "Cannot locate resource from
+         'ms-appx:///Views/ShellPage.xaml'" before a window exists. Naming the assembly here means the
+         PRI is named to match, so the two exes can sit in one folder under their own names. -->
+    <PropertyGroup Condition="'$(DevBem)'=='true'">
+        <AssemblyName>Bannerlord Environment Manager (Developer Build)</AssemblyName>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <!-- A developer Release build lands somewhere the release packaging never reads.
+             Package-Folder.ps1 is pointed at output\ by publish\nexus.json, so a dev exe cannot
+             reach the Nexus zip even if the switch were somehow on during a release run. -->
+        <_AutoPublishFinalDir Condition="'$(DevBem)'=='true'">$(MSBuildProjectDirectory)\output-dev\</_AutoPublishFinalDir>
+        <_AutoPublishFinalDir Condition="'$(DevBem)'!='true'">$(MSBuildProjectDirectory)\output\</_AutoPublishFinalDir>
+
+        <!-- The two tiers are built back to back routinely, so the folder the single-file publish
+             stages its exe in carries the tier in its name. Shared, an incremental publish that
+             decided it had nothing to do left the other tier's exe standing there to be copied. -->
+        <_AutoPublishTier Condition="'$(DevBem)'=='true'">dev</_AutoPublishTier>
+        <_AutoPublishTier Condition="'$(DevBem)'!='true'">public</_AutoPublishTier>
+        <_AutoPublishFinalExe>$(_AutoPublishFinalDir)$(AssemblyName).exe</_AutoPublishFinalExe>
+        <_AutoPublishFinalPdb>$(_AutoPublishFinalDir)$(AssemblyName).pdb</_AutoPublishFinalPdb>
+    </PropertyGroup>
+
+    <Target Name="AutoPublishSingleFileOnReleaseBuild"
+            AfterTargets="Build"
+            Condition="'$(Configuration)'=='Release' and '$(SkipAutoPublishOnBuild)'!='true' and '$(BuildingInsideVisualStudio)'!='true'">
+        <PropertyGroup>
+            <_AutoPublishRid Condition="'$(RuntimeIdentifier)'!=''">$(RuntimeIdentifier)</_AutoPublishRid>
+            <_AutoPublishRid Condition="'$(RuntimeIdentifier)'==''">win-x64</_AutoPublishRid>
+            <_AutoPublishIntermediatePublishDir>$(BaseIntermediateOutputPath)publish-singlefile-$(_AutoPublishRid)-$(_AutoPublishTier)</_AutoPublishIntermediatePublishDir>
+        </PropertyGroup>
+
+        <!-- Emptied first, so the Copy below can only ever take the exe this run produced. A publish
+             that failed, or decided it had nothing to do, used to leave the previous one standing
+             here to be copied out as if it were fresh. -->
+        <RemoveDir Directories="$(_AutoPublishIntermediatePublishDir)" />
+
+        <Message Importance="high" Text="Publishing single-file EXE to $(_AutoPublishFinalExe) (RID=$(_AutoPublishRid))..." />
+        <Message Importance="high" Text="Publishing RID=$(_AutoPublishRid) to intermediate dir: $(_AutoPublishIntermediatePublishDir)" />
+        <!-- A new process, so nothing the outer build was given reaches it on its own: the ring has
+             to be restated here or a developer Release build would land a public exe in output-dev. -->
+        <Exec Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c $(Configuration) -r $(_AutoPublishRid) -p:DevBem=$(DevBem) -p:SkipAutoPublishOnBuild=true -p:PublishDir=&quot;$(_AutoPublishIntermediatePublishDir)&quot; -p:SelfContained=true -p:WindowsAppSDKSelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:DebugType=None -p:DebugSymbols=false -p:CopyOutputSymbolsToPublishDirectory=false" />  
+        <MakeDir Directories="$(_AutoPublishFinalDir)" />
+        <Message Importance="high" Text="Ensuring no running instance is locking the destination EXE..." />
+        <Exec IgnoreExitCode="true"
+              Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;try { Get-Process -Name '$(AssemblyName)' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } catch { }&quot;" />
+        <Copy SourceFiles="$(_AutoPublishIntermediatePublishDir)\$(AssemblyName).exe"
+              DestinationFiles="$(_AutoPublishFinalExe)"
+              OverwriteReadOnlyFiles="true" />
+        <Delete Files="$(_AutoPublishFinalPdb)" ContinueOnError="true" />
+
+        <!-- The companion is looked up on disk beside the exe (CompanionPayload.SearchRoots), never
+             embedded in the single-file publish, so a package holding only the exe ships watch
+             sessions and boot checks that report the companion as not installed. The build put it in
+             $(OutDir)Companion; it has to travel into output\ or the zip made from output\ lacks it.
+             The glob is empty on a machine without the game (CanBuildCompanion false), where the
+             copy quietly does nothing. -->
+        <ItemGroup>
+            <_CompanionPayloadFiles Include="$(OutDir)Companion\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_CompanionPayloadFiles)"
+              DestinationFiles="@(_CompanionPayloadFiles->'$(_AutoPublishFinalDir)Companion\%(RecursiveDir)%(Filename)%(Extension)')"
+              OverwriteReadOnlyFiles="true" />
+
+        <!-- The zip is packaged from output\, so the legal documents have to be in it or no user
+             ever receives them. -->
+        <Copy SourceFiles="$(MSBuildProjectDirectory)\LICENSE.md;$(MSBuildProjectDirectory)\THIRD-PARTY-NOTICES.md"
+              DestinationFolder="$(_AutoPublishFinalDir)"
+              OverwriteReadOnlyFiles="true" />       
+    </Target>
+    <ItemGroup>
+      <Content Remove="Assets\Bannerlord Environment Manager - 128x128.png" />
+      <Content Remove="Assets\Bannerlord Environment Manager - 16x16.png" />
+      <Content Remove="Assets\Bannerlord Environment Manager - 256x256.png" />
+      <Content Remove="Assets\Bannerlord Environment Manager - 32x32.png" />
+      <Content Remove="Assets\Bannerlord Environment Manager - 48x48.png" />
+      <Content Remove="Assets\Bannerlord Environment Manager - 64x64.png" />
+    </ItemGroup>
+
+    <!-- .REFERENCE holds consumed reference material and is recreated per task. The default globs
+         would sweep it into the publish artifact, so it is excluded whether or not it exists now. -->
+    <ItemGroup>
+        <Content Remove=".REFERENCE\**" />
+        <None Remove=".REFERENCE\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Directory.Packages.props" />
+        <None Remove="Bannerlord Environment Manager.slnx" />
+    </ItemGroup>
+
+    <!-- The published single-file exe lands in output\ and the release zip in out\; unlike bin\ and
+         obj\ neither is auto-excluded from default globs, so without this they get re-embedded by
+         IncludeAllContentForSelfExtract, inflating each successive publish by the size of the
+         previous artifact. The out\ half was learned the hard way: every release build silently
+         carried the previous release zip inside the exe, which is why the app doubled in size the
+         moment two zips existed. -->
+    <ItemGroup>
+        <None Remove="output\**" />
+        <Content Remove="output\**" />
+        <Compile Remove="output\**" />
+        <None Remove="out\**" />
+        <Content Remove="out\**" />
+        <Compile Remove="out\**" />
+        <None Remove="output-dev\**" />
+        <Content Remove="output-dev\**" />
+        <Compile Remove="output-dev\**" />
+    </ItemGroup>
+
+    <!-- Core, Core.Tests and Companion are separate projects nested under this project's directory;
+         unlike their own bin\ and obj\, they are not auto-excluded from this project's default globs.
+         The Companion targets net472 and compiles against the game's assemblies, so pulling its
+         sources in here fails the build outright. -->
+    <ItemGroup>
+        <None Remove="Bannerlord Environment Manager.Core\**" />
+        <Content Remove="Bannerlord Environment Manager.Core\**" />
+        <Compile Remove="Bannerlord Environment Manager.Core\**" />
+        <None Remove="Bannerlord Environment Manager.Core.Tests\**" />
+        <Content Remove="Bannerlord Environment Manager.Core.Tests\**" />
+        <Compile Remove="Bannerlord Environment Manager.Core.Tests\**" />
+        <None Remove="Bannerlord Environment Manager.Companion\**" />
+        <Content Remove="Bannerlord Environment Manager.Companion\**" />
+        <Compile Remove="Bannerlord Environment Manager.Companion\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.WindowsAppSDK" />
+        <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+        <PackageReference Include="CommunityToolkit.Mvvm" />
+        <PackageReference Include="System.Management" />
+
+        <Manifest Include="$(ApplicationManifest)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="Bannerlord Environment Manager.Core\Bannerlord Environment Manager.Core.csproj" />
+    </ItemGroup>
+
+    <!-- The dry run companion.
+
+         It is a net472 assembly compiled against the user's own game install, so BEM cannot reference
+         it for its types and MUST NOT require it in order to build: a developer or build machine
+         often has no Bannerlord installed, and Core, Core.Tests and the app all have to
+         build there. Everything below is therefore gated on CanBuildCompanion, which is false unless
+         the game's own assemblies and Bannerlord.Harmony's 0Harmony are both present on disk.
+
+         Chosen over embedding the payload as a resource in Core, which would need a ProjectReference
+         from Core to the companion and would break every build on a game-less machine, and
+         over building it on demand at runtime, which would need a .NET SDK on the player's machine. -->
+    <PropertyGroup>
+        <CompanionGameDir Condition="'$(CompanionGameDir)' == ''">$(BANNERLORD_GAME_DIR)</CompanionGameDir>
+        <CompanionGameDir Condition="'$(CompanionGameDir)' == '' And Exists('C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client')">C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</CompanionGameDir>
+        <CompanionGameDir Condition="'$(CompanionGameDir)' == '' And Exists('C:\XboxGames\Mount &amp; Blade II- Bannerlord\Content\bin\Gaming.Desktop.x64_Shipping_Client')">C:\XboxGames\Mount &amp; Blade II- Bannerlord\Content</CompanionGameDir>
+        <CompanionPlatformFolder></CompanionPlatformFolder>
+        <CompanionPlatformFolder Condition="Exists('$(CompanionGameDir)\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll')">Win64_Shipping_Client</CompanionPlatformFolder>
+        <CompanionPlatformFolder Condition="'$(CompanionPlatformFolder)' == '' And Exists('$(CompanionGameDir)\bin\Gaming.Desktop.x64_Shipping_Client\TaleWorlds.MountAndBlade.dll')">Gaming.Desktop.x64_Shipping_Client</CompanionPlatformFolder>
+        <CompanionTargetFramework Condition="'$(CompanionPlatformFolder)' == 'Gaming.Desktop.x64_Shipping_Client'">net6.0</CompanionTargetFramework>
+        <CompanionTargetFramework Condition="'$(CompanionTargetFramework)' == ''">net472</CompanionTargetFramework>
+        <CanBuildCompanion>false</CanBuildCompanion>
+        <CanBuildCompanion Condition="'$(CompanionPlatformFolder)' != '' And Exists('$(CompanionGameDir)\Modules\Bannerlord.Harmony\bin\$(CompanionPlatformFolder)\0Harmony.dll')">true</CanBuildCompanion>
+        <CompanionPayloadPath>$(MSBuildProjectDirectory)\Bannerlord Environment Manager.Companion\bin\$(Configuration)\$(CompanionTargetFramework)\BannerlordEnvironmentManager.Companion.dll</CompanionPayloadPath>
+    </PropertyGroup>
+
+    <!-- ReferenceOutputAssembly is false because nothing here links against it: the reference exists
+         only so the payload is built and kept current, and the undefined properties stop BEM's
+         platform and single-file settings from being pushed onto a net472 AnyCPU project. -->
+    <ItemGroup Condition="'$(CanBuildCompanion)' == 'true'">
+        <ProjectReference Include="Bannerlord Environment Manager.Companion\Bannerlord Environment Manager.Companion.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+            <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+            <UndefineProperties>TargetFramework;Platform;RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir</UndefineProperties>
+        </ProjectReference>
+    </ItemGroup>
+
+    <Target Name="CopyCompanionPayload" AfterTargets="Build"
+            Condition="'$(CanBuildCompanion)' == 'true' And Exists('$(CompanionPayloadPath)')">
+        <Copy SourceFiles="$(CompanionPayloadPath)" DestinationFolder="$(OutDir)Companion\$(CompanionPlatformFolder)" SkipUnchangedFiles="true" />
+        <Message Importance="normal" Text="Companion payload for $(CompanionPlatformFolder) copied to $(OutDir)Companion\$(CompanionPlatformFolder)." />
+    </Target>
+
+    <!-- Publish is a separate list from the build output, and a single-file publish bundles whatever
+         is in it. CompanionPayload.Locate looks in a Companion subfolder beside BEM first, which is
+         where IncludeAllContentForSelfExtract extracts this to. -->
+    <Target Name="PublishCompanionPayload" AfterTargets="ComputeResolvedFilesToPublishList"
+            Condition="'$(CanBuildCompanion)' == 'true' And Exists('$(CompanionPayloadPath)')">
+        <ItemGroup>
+            <ResolvedFileToPublish Include="$(CompanionPayloadPath)">
+                <RelativePath>Companion\$(CompanionPlatformFolder)\BannerlordEnvironmentManager.Companion.dll</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            </ResolvedFileToPublish>
+        </ItemGroup>
+    </Target>
+
+    <!-- A game-less machine gets one line saying why the dry run will refuse, rather than a missing
+         file nobody notices until the button is pressed. -->
+    <Target Name="ReportMissingCompanionPayload" AfterTargets="Build" Condition="'$(CanBuildCompanion)' != 'true'">
+        <Message Importance="normal"
+                 Text="No Bannerlord install was found, so the dry run companion was not built and BEM ships without it. Everything else builds; the dry run refuses with a reason at runtime." />
+    </Target>
+
+</Project>

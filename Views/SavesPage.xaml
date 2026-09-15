@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.SavesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:views="using:BannerlordEnvironmentManager.Views"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+
+        <Style x:Key="SaveColumn" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+            <Setter Property="Foreground" Value="{StaticResource AlkSoftChampagneBrush}" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="SaveColumnHeader" TargetType="TextBlock" BasedOn="{StaticResource LabelText}">
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+
+        <DataTemplate x:Key="DifferenceRow" x:DataType="vm:SaveDifferenceRowViewModel">
+            <Border Background="{StaticResource AlkSurfaceRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}"
+                    BorderThickness="1" Padding="10" CornerRadius="0" Margin="0,0,0,8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind Heading}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Heading}" />
+                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                               IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Padding="20,14,20,16">
+        <Grid RowSpacing="12">
+            <!-- Two co-primary regions on one page: the list is what a save is picked from and the
+                 diff is what the page exists to say, and neither is the one that gives way. Equal
+                 stars, so every pixel the window gains or loses is split evenly and neither can take
+                 from the other, and a floor each so a window too short to honor both is the only case
+                 where either is unreadable. 284 is the list's chrome plus the 230 it used to be
+                 pinned to, so it never ships smaller than it did and now grows with the window; 260
+                 leaves the diff its heading, its segment bar and a difference to read. Below about
+                 690 px of page height the two floors cannot both be honored and the grid runs past
+                 the bottom edge rather than clipping. -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" MinHeight="284" />
+                <RowDefinition Height="*" MinHeight="260" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="Saves.Title" BlurbKey="Saves.Blurb">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button loc:Loc.Content="Saves.RefreshButton" Command="{x:Bind SavesViewModel.RefreshCommand}"
+                            Style="{StaticResource PrimaryAction}" MinWidth="180"
+                            loc:Loc.Tooltip="Saves.RefreshButton.Tooltip" />
+                    <Button loc:Loc.Content="Saves.LaunchButton" Command="{x:Bind SavesViewModel.LaunchIntoSelectedSaveCommand}"
+                            Style="{StaticResource Action}" MinWidth="220"
+                            loc:Loc.Tooltip="Saves.LaunchButton.Tooltip" />
+                    <Button loc:Loc.Content="Saves.RestoreButton" Command="{x:Bind SavesViewModel.RestoreLoadOrderCommand}"
+                            Style="{StaticResource Action}" MinWidth="280"
+                            loc:Loc.Tooltip="Saves.RestoreButton.Tooltip" />
+                    <TextBlock Text="{x:Bind SavesViewModel.SavesFolder, Mode=OneWay}" Style="{StaticResource BodyText}"
+                               VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </controls:PageHeader>
+
+
+            <Border Grid.Row="1" Background="{StaticResource AlkSurfaceBrush}" Padding="10" CornerRadius="0"
+                    BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                <!-- The save table is six columns wide and five of them state a fixed width: 740 px of columns,
+                     60 of spacing and 24 of margin come to 824 that cannot shrink, and the star column carries a
+                     floor of 180 inside that. On a page with no sideways scrolling the last three columns simply
+                     sat past the right edge below that width. The table keeps the floor and scrolls sideways
+                     inside its own container instead, which is where a minimum belongs; above 824 px the star
+                     column still takes every pixel the window gains. The header and the rows are inside the one
+                     scroller together, so they cannot be moved out of line with each other, and the list keeps
+                     its own vertical bar because this one does not use that axis. -->
+                <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                    <Grid RowSpacing="6" MinWidth="824">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Sits above the list rather than beside the folder path, because the reader of an
+                             empty list is looking here. An empty list on Game Pass without BLSE means BEM
+                             could not look, which is the opposite of having no saves.
+                             It is left free to size to its message, and the cost of that is paid inside
+                             this region: the list row below is the star, so the note shortens the list and
+                             reaches nothing else on the page. Clipping it instead would cut the only
+                             explanation a reader gets for a list that does not match their campaigns. -->
+                        <InfoBar IsOpen="True" IsClosable="False" Severity="Informational"
+                                 loc:Loc.Header="Saves.LocationInfoBar"
+                                 Message="{x:Bind SavesViewModel.LocationNote, Mode=OneWay}"
+                                 Visibility="{x:Bind SavesViewModel.LocationNote, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                        <Grid Grid.Row="1" ColumnSpacing="12" Margin="12,0,12,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="180" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="170" />
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="140" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock loc:Loc.Text="Saves.NameColumnHeader" Style="{StaticResource SaveColumnHeader}" />
+                            <TextBlock Grid.Column="1" loc:Loc.Text="Saves.VersionColumnHeader" Style="{StaticResource SaveColumnHeader}" />
+                            <TextBlock Grid.Column="2" loc:Loc.Text="Saves.CharacterColumnHeader" Style="{StaticResource SaveColumnHeader}" />
+                            <TextBlock Grid.Column="3" loc:Loc.Text="Saves.LevelColumnHeader" Style="{StaticResource SaveColumnHeader}" />
+                            <TextBlock Grid.Column="4" loc:Loc.Text="Saves.DaysColumnHeader" Style="{StaticResource SaveColumnHeader}" />
+                            <TextBlock Grid.Column="5" loc:Loc.Text="Saves.CreatedColumnHeader" Style="{StaticResource SaveColumnHeader}" />
+                        </Grid>
+
+                        <ListView Grid.Row="2" x:Name="SaveList" ItemsSource="{x:Bind SavesViewModel.Saves}"
+                                  SelectedItem="{x:Bind SavesViewModel.SelectedSave, Mode=TwoWay}"
+                                  SelectionMode="Single" Background="Transparent" BorderThickness="0"
+                                  ContextRequested="OnSaveContextRequested">
+                            <!-- The flyout lives on the list, not in the item template, so its items can
+                                 x:Bind the page view model. Which row it applies to is recorded by the
+                                 handler on the row itself, and cleared here when the click landed below the
+                                 last row. -->
+                            <ListView.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem loc:Loc.Text="Saves.ShowInFolderMenuItem" Command="{x:Bind SavesViewModel.ShowContextSaveInFolderCommand}"
+                                                    loc:Loc.Tooltip="Saves.ShowInFolderMenuItem.Tooltip" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem loc:Loc.Text="Saves.CopyNameMenuItem" Command="{x:Bind SavesViewModel.CopyContextSaveNameCommand}"
+                                                    loc:Loc.Tooltip="Saves.CopyNameMenuItem.Tooltip" />
+                                    <MenuFlyoutItem loc:Loc.Text="Saves.CopyPathMenuItem" Command="{x:Bind SavesViewModel.CopyContextSavePathCommand}"
+                                                    Visibility="{x:Bind views:PageDensity.Advanced(Navigation.IsAdvancedMode), Mode=OneWay}"
+                                                    loc:Loc.Tooltip="Saves.CopyPathMenuItem.Tooltip" />
+                                    <MenuFlyoutItem loc:Loc.Text="Saves.CopyModuleListMenuItem" Command="{x:Bind SavesViewModel.CopyContextSaveModulesCommand}"
+                                                    loc:Loc.Tooltip="Saves.CopyModuleListMenuItem.Tooltip" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem loc:Loc.Text="Saves.RestoreLoadOrderMenuItem" Command="{x:Bind SavesViewModel.RestoreContextSaveLoadOrderCommand}"
+                                                    loc:Loc.Tooltip="Saves.RestoreLoadOrderMenuItem.Tooltip" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem loc:Loc.Text="Saves.LaunchMenuItem" Command="{x:Bind SavesViewModel.LaunchIntoContextSaveCommand}"
+                                                    loc:Loc.Tooltip="Saves.LaunchMenuItem.Tooltip" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem loc:Loc.Text="Saves.RecycleMenuItem" Command="{x:Bind SavesViewModel.RecycleContextSaveCommand}"
+                                                    loc:Loc.Tooltip="Saves.RecycleMenuItem.Tooltip" />
+                                </MenuFlyout>
+                            </ListView.ContextFlyout>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="8,6" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SaveRowViewModel">
+                                    <!-- The row records itself, and this is the half that cannot be skipped.
+                                         ContextRequested bubbles and the framework shows the flyout whether
+                                         or not a handler ran, so a list-only handler leaves every item grayed
+                                         out when anything between the click and the list marks the event
+                                         handled. -->
+                                    <StackPanel Spacing="2" Background="Transparent"
+                                                ContextRequested="OnSaveRowContextRequested">
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" MinWidth="180" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="170" />
+                                                <ColumnDefinition Width="60" />
+                                                <ColumnDefinition Width="60" />
+                                                <ColumnDefinition Width="140" />
+                                            </Grid.ColumnDefinitions>
+                                            <!-- Selecting a row is how a save is picked, so its text opts out of
+                                                 selection. The row's context menu copies the name and the path. -->
+                                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource SaveColumn}" IsTextSelectionEnabled="False" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind Version}" Style="{StaticResource SaveColumn}" IsTextSelectionEnabled="False" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind Character}" Style="{StaticResource SaveColumn}" IsTextSelectionEnabled="False" />
+                                            <TextBlock Grid.Column="3" Text="{x:Bind Level}" Style="{StaticResource SaveColumn}" IsTextSelectionEnabled="False" />
+                                            <TextBlock Grid.Column="4" Text="{x:Bind Days}" Style="{StaticResource SaveColumn}" IsTextSelectionEnabled="False" />
+                                            <TextBlock Grid.Column="5" Text="{x:Bind Created}" Style="{StaticResource SaveColumn}" IsTextSelectionEnabled="False" />
+                                        </Grid>
+                                        <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="False" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+
+            <!-- The diff is what this page is for. Reading a save's columns tells you which campaign it
+                 is; reading this tells you whether it will still load the way it did. -->
+            <Grid Grid.Row="2" RowSpacing="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Both lines are rewritten every time a save is picked and every translation is a
+                     different length, so left to wrap freely they would take whatever they needed out
+                     of the differences below them. Two lines for the summary and one for what it was
+                     compared against is the share they get; anything longer is trimmed and readable
+                     in the tooltip. -->
+                <StackPanel Spacing="4">
+                    <TextBlock loc:Loc.Text="Saves.DiffHeading" Style="{StaticResource SubHeadingText}" />
+                    <TextBlock Text="{x:Bind SavesViewModel.DiffSummary, Mode=OneWay}" Style="{StaticResource BodyText}"
+                               TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                               IsTextSelectionEnabled="True"
+                               ToolTipService.ToolTip="{x:Bind SavesViewModel.DiffSummary, Mode=OneWay}" />
+                    <TextBlock Text="{x:Bind SavesViewModel.ComparedAgainst, Mode=OneWay}" Style="{StaticResource BodyText}"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               ToolTipService.ToolTip="{x:Bind SavesViewModel.ComparedAgainst, Mode=OneWay}"
+                               Visibility="{x:Bind SavesViewModel.ComparedAgainst, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" Foreground="{StaticResource AlkMutedTextBrush}" />
+                </StackPanel>
+
+                <!-- A Grid rather than a stack, because a stack measures its children against infinite
+                     height: the segment bar and a panel asking for 240 came to about 300 px of
+                     desired height whatever this row was given, and a Grid does not clip, so on a
+                     shorter window the panel ran over the status line instead of scrolling. The panel
+                     takes the star row now and the scroller inside it is sized by that row, so the
+                     region fits its share at every window height. It is also the only scroller over
+                     this content: wrapping the bar and the panel together in a second one would put a
+                     scrollbar inside a scrollbar, where a reader cannot tell which one they are
+                     moving. -->
+                <Grid Grid.Row="1" RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <SelectorBar x:Name="DiffSegments" SelectionChanged="OnDiffSegmentSelected">
+                        <SelectorBarItem x:Name="DiffAddedSegment" loc:Loc.Text="Saves.AddedSegment" />
+                        <SelectorBarItem x:Name="DiffRemovedSegment" loc:Loc.Text="Saves.RemovedSegment" />
+                        <SelectorBarItem x:Name="DiffVersionSegment" loc:Loc.Text="Saves.VersionChangedSegment" />
+                        <SelectorBarItem x:Name="DiffNotRecordedSegment" loc:Loc.Text="Saves.NotRecordedSegment"
+                                         loc:Loc.Tooltip="Saves.NotRecordedSegment.Tooltip" />
+                    </SelectorBar>
+
+                    <!-- One list at a time: three of the four are empty on a healthy setup, so four
+                         side-by-side columns are mostly four empty boxes fighting for the screen. The
+                         empty state and the summary above still say what each segment would have. -->
+                    <Border Grid.Row="1" x:Name="DiffAddedPanel" Background="{StaticResource AlkSurfaceBrush}" Padding="10" CornerRadius="0"
+                            BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind SavesViewModel.Added}"
+                                              ItemTemplate="{StaticResource DifferenceRow}" />
+                                <TextBlock Text="{x:Bind SavesViewModel.AddedEmptyText, Mode=OneWay}"
+                                           Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                           Visibility="{x:Bind SavesViewModel.AddedEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Border Grid.Row="1" x:Name="DiffRemovedPanel" Background="{StaticResource AlkSurfaceBrush}" Padding="10" CornerRadius="0"
+                            BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind SavesViewModel.Removed}"
+                                              ItemTemplate="{StaticResource DifferenceRow}" />
+                                <TextBlock Text="{x:Bind SavesViewModel.RemovedEmptyText, Mode=OneWay}"
+                                           Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                           Visibility="{x:Bind SavesViewModel.RemovedEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Border Grid.Row="1" x:Name="DiffVersionPanel" Background="{StaticResource AlkSurfaceBrush}" Padding="10" CornerRadius="0"
+                            BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind SavesViewModel.VersionChanged}"
+                                              ItemTemplate="{StaticResource DifferenceRow}" />
+                                <TextBlock Text="{x:Bind SavesViewModel.VersionChangedEmptyText, Mode=OneWay}"
+                                           Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                           Visibility="{x:Bind SavesViewModel.VersionChangedEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Border Grid.Row="1" x:Name="DiffNotRecordedPanel" Background="{StaticResource AlkSurfaceBrush}" Padding="10" CornerRadius="0"
+                            BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind SavesViewModel.NotRecorded}"
+                                              ItemTemplate="{StaticResource DifferenceRow}" />
+                                <TextBlock Text="{x:Bind SavesViewModel.NotRecordedEmptyText, Mode=OneWay}"
+                                           Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                           Visibility="{x:Bind SavesViewModel.NotRecordedEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Fixed height on purpose. This line is rewritten on every refresh and each message is a
+                 different length, so a label free to wrap took a second line out of the two regions
+                 above it and gave it back on the next refresh. 44 px holds two lines at the body step
+                 whatever it says; a longer message is trimmed and readable in the tooltip. -->
+            <TextBlock Grid.Row="3" Height="44" Text="{x:Bind SavesViewModel.StatusMessage, Mode=OneWay}"
+                       Style="{StaticResource BodyText}" TextWrapping="Wrap" MaxLines="2"
+                       TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True"
+                       ToolTipService.ToolTip="{x:Bind SavesViewModel.StatusMessage, Mode=OneWay}" />
+        </Grid>
+    </Grid>
+</Page>

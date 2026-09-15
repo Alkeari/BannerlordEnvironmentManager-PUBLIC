@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The framework is decided by the install this is compiled against, never by a default.
+
+       Read off the Steam install's own files: bin\Win64_Shipping_Client\Bannerlord.exe carries
+       TargetFrameworkAttribute ".NETFramework,Version=v4.7.2", so the process the companion is loaded
+       into there is .NET Framework and net472 is the right target. The same folder also ships a
+       Microsoft.NETCore.App subfolder holding coreclr.dll and a runtimeconfig.json saying net6.0, which
+       is what the net6.0 here is aimed at; that the Gaming.Desktop build is the one that hosts it is an
+       inference, not something checked on a Game Pass machine. The TaleWorlds assemblies themselves are
+       netstandard2.0 and load under either runtime.
+
+       A machine with no install at all still evaluates to net472 so the project loads in an IDE; the app
+       project refuses to build it in that case, and the solution never builds it directly. -->
+  <PropertyGroup>
+    <BannerlordGameDir Condition="'$(BannerlordGameDir)' == ''">$(BANNERLORD_GAME_DIR)</BannerlordGameDir>
+    <BannerlordGameDir Condition="'$(BannerlordGameDir)' == '' And Exists('C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client')">C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BannerlordGameDir>
+    <CompanionPlatformFolder Condition="Exists('$(BannerlordGameDir)\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll')">Win64_Shipping_Client</CompanionPlatformFolder>
+    <CompanionPlatformFolder Condition="'$(CompanionPlatformFolder)' == '' And Exists('$(BannerlordGameDir)\bin\Gaming.Desktop.x64_Shipping_Client\TaleWorlds.MountAndBlade.dll')">Gaming.Desktop.x64_Shipping_Client</CompanionPlatformFolder>
+    <TargetFramework Condition="'$(CompanionPlatformFolder)' == 'Gaming.Desktop.x64_Shipping_Client'">net6.0</TargetFramework>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net472</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Platforms>AnyCPU</Platforms>
+    <RootNamespace>BannerlordEnvironmentManager.Companion</RootNamespace>
+    <AssemblyName>BannerlordEnvironmentManager.Companion</AssemblyName>
+    <Version>1.0.0</Version>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+  </PropertyGroup>
+
+  <!-- The companion must be compiled against the assemblies it will run beside, so the references
+       come from the user's own install. Nothing here is ever copied into the repository or into the
+       build output: Private=false on every reference and CopyLocalLockFileAssemblies=false. -->
+  <PropertyGroup>
+    <BannerlordBinDir>$(BannerlordGameDir)\bin\$(CompanionPlatformFolder)</BannerlordBinDir>
+    <BannerlordHarmonyDir>$(BannerlordGameDir)\Modules\Bannerlord.Harmony\bin\$(CompanionPlatformFolder)</BannerlordHarmonyDir>
+  </PropertyGroup>
+
+  <Target Name="VerifyGameAssemblies" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(BannerlordGameDir)' == ''"
+           Text="BANNERLORD_GAME_DIR is not set and no Bannerlord install was found. The companion is built against the game's own assemblies, so it cannot be built without one." />
+    <Error Condition="'$(CompanionPlatformFolder)' == ''"
+           Text="'$(BannerlordGameDir)' has neither bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.dll nor bin\Gaming.Desktop.x64_Shipping_Client\TaleWorlds.MountAndBlade.dll, so the companion cannot tell which platform to compile against." />
+    <Error Condition="!Exists('$(BannerlordBinDir)\TaleWorlds.MountAndBlade.dll')"
+           Text="TaleWorlds.MountAndBlade.dll was not found under '$(BannerlordBinDir)'." />
+    <Error Condition="!Exists('$(BannerlordHarmonyDir)\0Harmony.dll')"
+           Text="0Harmony.dll was not found under '$(BannerlordHarmonyDir)'. Bannerlord.Harmony must be installed: the companion never ships its own copy, because the user's Harmony has to win the assembly load race." />
+  </Target>
+
+  <ItemGroup>
+    <Reference Include="TaleWorlds.MountAndBlade">
+      <HintPath>$(BannerlordBinDir)\TaleWorlds.MountAndBlade.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Library">
+      <HintPath>$(BannerlordBinDir)\TaleWorlds.Library.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.ModuleManager">
+      <HintPath>$(BannerlordBinDir)\TaleWorlds.ModuleManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Engine">
+      <HintPath>$(BannerlordBinDir)\TaleWorlds.Engine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.DotNet">
+      <HintPath>$(BannerlordBinDir)\TaleWorlds.DotNet.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.Core">
+      <HintPath>$(BannerlordBinDir)\TaleWorlds.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(BannerlordHarmonyDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

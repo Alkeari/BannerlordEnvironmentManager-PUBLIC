@@ -1,0 +1,20 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Bannerlord Environment Manager.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+    <Deploy Solution="Release|x64" />
+  </Project>
+  <Project Path="Bannerlord Environment Manager.Core/Bannerlord Environment Manager.Core.csproj" />
+  <!-- The companion compiles against the user's own Bannerlord assemblies, so it cannot be built on a
+       machine with no game installed. It stays in the solution to stay editable and searchable, but the
+       solution never builds it directly: the app project pulls it in through a ProjectReference gated on
+       CanBuildCompanion, so an install that has the game still produces the payload, and a contributor
+       who does not have the game can still build and test everything else. -->
+  <Project Path="Bannerlord Environment Manager.Companion/Bannerlord Environment Manager.Companion.csproj">
+    <Build Solution="*|*" Project="false" />
+  </Project>
+</Solution>

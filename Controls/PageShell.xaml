@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Controls.PageShell"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    mc:Ignorable="d">
+
+    <!-- The page frame. Four bands, in the same order, at the same place on every page:
+         identity (title + the one line of state that matters + the primary action), commands,
+         content, and a single status line. Learn one screen, know all of them. -->
+    <Grid Padding="20,14,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <controls:PageHeader x:Name="IdentityBand" Title="{x:Bind Title, Mode=OneWay}"
+                             Blurb="{x:Bind Blurb, Mode=OneWay}"
+                             TitleKey="{x:Bind TitleKey, Mode=OneWay}" BlurbKey="{x:Bind BlurbKey, Mode=OneWay}"
+                             Actions="{x:Bind Actions, Mode=OneWay}"
+                             Margin="0,0,0,14" />
+
+        <ContentPresenter x:Name="CommandsHost" Grid.Row="1" Content="{x:Bind Commands, Mode=OneWay}"
+                          Margin="0,0,0,10" />
+
+        <!-- Two hosts for the one body, and only ever one of them holds it. A ScrollViewer measures its
+             child with an unbounded height, so inside a scrolling body a star row collapses to what its
+             content asked for and a list grows to every item it has: a page whose primary region has to
+             keep a floor cannot state that floor in here at all. The second reason is the scrollbar. A
+             body that scrolls and content that scrolls inside it put two bars side by side, and a reader
+             who cannot tell which one they are moving reads the inner region as broken. BodyScrolls
+             lifts the body out of the scroller and sizes it to the frame instead. -->
+        <Grid x:Name="BodyRegion" Grid.Row="2">
+            <ScrollViewer x:Name="ContentScroller" HorizontalScrollBarVisibility="Disabled">
+                <ContentPresenter x:Name="BodyHost" Content="{x:Bind Body, Mode=OneWay}" />
+            </ScrollViewer>
+        </Grid>
+
+        <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="{StaticResource AlkHairlineBrush}"
+                Background="{StaticResource AlkSurfaceBrush}" Padding="2,6,2,6" Margin="0,10,0,0">
+            <TextBlock x:Name="StatusText" Style="{StaticResource MonoText}" Text="{x:Bind Status, Mode=OneWay}"
+                       TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" />
+        </Border>
+    </Grid>
+</UserControl>

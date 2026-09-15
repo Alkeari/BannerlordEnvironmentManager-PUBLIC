@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.UnblockPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:BannerlordEnvironmentManager"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="TextToVisibility" />
+    </Page.Resources>
+
+    <Grid Padding="20,14,20,16">
+        <Grid RowSpacing="12">
+            <!-- The results list is what this page exists for. What used to take its height was the
+                 status line written after the run; it declares a fixed share now, and every other row
+                 here is one row of controls that cannot grow, so the list is simply what is left and
+                 shrinks smoothly with the window. That is the order these regions give up size in: the
+                 controls and the status keep their heights, the list absorbs the difference. A minimum
+                 here instead would add to the fixed total, and below it the grid runs off the bottom
+                 edge and puts the status where no scrollbar reaches. -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="Unblock.Title" BlurbKey="Unblock.Blurb" />
+
+            <Grid Grid.Row="1" Margin="0,20,0,0" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="6">
+                    <TextBlock loc:Loc.Text="Unblock.SelectedPath" Style="{StaticResource LabelText}" />
+                    <TextBox Text="{x:Bind UnblockViewModel.SelectedPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" loc:Loc.Placeholder="Unblock.SelectedPath.Placeholder" IsReadOnly="True"
+                             loc:Loc.Tooltip="Unblock.SelectedPath.Tooltip" />
+                </StackPanel>
+                <Button Grid.Column="1" loc:Loc.Content="Unblock.BrowseFolderButton" Command="{x:Bind UnblockViewModel.BrowseFolderCommand}" Style="{StaticResource Action}" Width="140" VerticalAlignment="Bottom"
+                        loc:Loc.Tooltip="Unblock.BrowseFolderButton.Tooltip" />
+                <Button Grid.Column="2" loc:Loc.Content="Unblock.BrowseFilesButton" Command="{x:Bind UnblockViewModel.BrowseFilesCommand}" Style="{StaticResource Action}" Width="140" VerticalAlignment="Bottom"
+                        loc:Loc.Tooltip="Unblock.BrowseFilesButton.Tooltip" />
+            </Grid>
+
+            <StackPanel Grid.Row="2" Margin="0,16,0,0" Orientation="Horizontal" Spacing="12">
+                <Button loc:Loc.Content="Unblock.UnblockButton" Command="{x:Bind UnblockViewModel.UnblockCommand}" Style="{StaticResource PrimaryAction}" Width="160"
+                        loc:Loc.Tooltip="Unblock.UnblockButton.Tooltip" />
+                <ProgressRing IsActive="{x:Bind UnblockViewModel.IsBusy, Mode=OneWay}" Width="32" Height="32" />
+            </StackPanel>
+
+            <!-- The list scrolls itself. A ScrollViewer around it measured it against an unbounded
+                 height, so the list's own bar never engaged, every row was realized at once, and the
+                 two scrollers sat one inside the other with no way to tell which one was moving. -->
+            <Border Grid.Row="3" Margin="0,16,0,0" Background="{StaticResource AlkSurfaceBrush}" Padding="10" CornerRadius="0" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                <ListView ItemsSource="{x:Bind UnblockViewModel.Results}" SelectionMode="None" Background="Transparent" BorderThickness="0">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:UnblockResultItem">
+                            <StackPanel Spacing="4" Padding="8">
+                                <TextBlock Text="{x:Bind FileName}" Style="{StaticResource SubHeadingText}" />
+                                <TextBlock Text="{x:Bind FullPath}" Style="{StaticResource BodyText}"
+                                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Foreground="{StaticResource AlkMutedTextBrush}" />
+                                <TextBlock Text="{x:Bind Status}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                <TextBlock Text="{x:Bind ErrorMessage}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                           Visibility="{x:Bind ErrorMessage, Converter={StaticResource TextToVisibility}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+
+            <!-- Fixed height on purpose. The line is written after the run, which is when the results
+                 above it are fullest, and each message is a different length, so a label that sized
+                 to its own text took that height out of the list. Two lines, then the ellipsis, and
+                 the whole message on the hover. -->
+            <Grid Grid.Row="4" Height="40" Margin="0,8,0,0">
+                <TextBlock Text="{x:Bind UnblockViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource BodyText}"
+                           TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"
+                           ToolTipService.ToolTip="{x:Bind UnblockViewModel.StatusMessage, Mode=OneWay}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.WatchPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:views="using:BannerlordEnvironmentManager.Views"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!-- One sentence per row, and the copyable specifics under it. The time is de-emphasized in
+             the gold family rather than dimmed with opacity, and a row that failed is the region's
+             one supporting accent. -->
+        <DataTemplate x:Key="TimelineRow" x:DataType="vm:LaunchTimelineRowViewModel">
+            <Grid Margin="0,0,0,6" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{x:Bind At}" Style="{StaticResource BodyText}" IsTextSelectionEnabled="True"
+                           Foreground="{StaticResource AlkWarmGoldShadowBrush}" />
+
+                <!-- Headline and Detail render through TimelineRichText.Row rather than as their own
+                     TextBlocks: WinUI cannot carry a text selection across separate sibling TextBlocks,
+                     so a row's two lines could never be selected together. Building both as Inlines of
+                     one TextBlock keeps the severity color on Headline and the dimmer gray on Detail
+                     while making the whole entry one continuous selectable block. -->
+                <TextBlock Grid.Column="1" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True" views:TimelineRichText.Row="{x:Bind}" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PatchRow" x:DataType="vm:ModulePatchRowViewModel">
+            <TextBlock Text="{x:Bind Line}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                       IsTextSelectionEnabled="True" Margin="0,0,0,4" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="RunRow" x:DataType="vm:LaunchRunRowViewModel">
+            <TextBlock Text="{x:Bind Label}" />
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer>
+        <Grid Padding="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="Watch.Title" BlurbKey="Watch.Blurb" />
+
+            <InfoBar Grid.Row="1" Margin="0,20,0,0"
+                     IsOpen="True"
+                     IsClosable="False"
+                     Severity="{x:Bind Watch.Severity, Mode=OneWay}"
+                     Message="{x:Bind Watch.StatusMessage, Mode=OneWay}" />
+
+            <!-- The cost is stated here, beside the button, rather than in a document nobody opens.
+                 This is the one thing in BEM that changes what runs inside the game during real
+                 play, which is why it is off until it is pressed. -->
+            <Border Grid.Row="2" Margin="0,20,0,0" Padding="14" CornerRadius="0"
+                    Background="{StaticResource AlkSurfaceBrush}"
+                    BorderBrush="{StaticResource AlkHairlineBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock loc:Loc.Text="Watch.CostHeading" Style="{StaticResource SubHeadingText}" />
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               loc:Loc.Text="Watch.CostInstallText" />
+                    <!-- The companion has to be on the command line's module list to load at all, so
+                         only a launch BEM starts carries it. Both halves of that are said, because the
+                         page once claimed every launch was watched. -->
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               loc:Loc.Text="Watch.CostArmedText" />
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               loc:Loc.Text="Watch.CostOverheadText" />
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               loc:Loc.Text="Watch.CostPatchScopeText" />
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               loc:Loc.Text="Watch.CostFrameRateText" />
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               loc:Loc.Text="Watch.CostLaunchMethodText" />
+                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               loc:Loc.Text="Watch.CostOffByDefaultText" />
+                </StackPanel>
+            </Border>
+
+            <!-- Four buttons of full sentences, about 1150 px, and the picker row about 1020: neither
+                 shrinks, and the page scroller is vertical only, so most of both sat past the right edge
+                 of any ordinary window. Each scrolls sideways inside its own container now; the axes do
+                 not overlap, so there is one bar per direction. -->
+            <ScrollViewer Grid.Row="3" Margin="0,20,0,0" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button loc:Loc.Content="Watch.StartAndLaunchButton"
+                            Command="{x:Bind Watch.StartWatchingCommand}"
+                            Style="{StaticResource PrimaryAction}"
+                            loc:Loc.Tooltip="Watch.StartAndLaunchButton.Tooltip" />
+                    <Button loc:Loc.Content="Watch.ArmButton"
+                            Command="{x:Bind Watch.ArmWatchCommand}"
+                            Style="{StaticResource Action}"
+                            loc:Loc.Tooltip="Watch.ArmButton.Tooltip" />
+                    <Button loc:Loc.Content="Watch.LaunchAgainButton"
+                            Command="{x:Bind Watch.LaunchAgainWatchedCommand}"
+                            Style="{StaticResource Action}"
+                            loc:Loc.Tooltip="Watch.LaunchAgainButton.Tooltip" />
+                    <Button loc:Loc.Content="Watch.StopButton"
+                            Command="{x:Bind Watch.StopWatchingCommand}"
+                            Style="{StaticResource Action}"
+                            loc:Loc.Tooltip="Watch.StopButton.Tooltip" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- The timeline. This is the answer to "how did we get from launch to crash", and it is
+                 read from what is already on disk, so it works whether or not a watch is armed now. -->
+            <StackPanel Grid.Row="4" Margin="0,24,0,0" Spacing="10">
+                <TextBlock loc:Loc.Text="Watch.TimelineHeading" Style="{StaticResource SubHeadingText}" />
+
+                <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <ComboBox ItemsSource="{x:Bind Watch.Runs}"
+                                  SelectedIndex="{x:Bind Watch.SelectedRunIndex, Mode=TwoWay}"
+                                  ItemTemplate="{StaticResource RunRow}"
+                                  MinWidth="320"
+                                  loc:Loc.Placeholder="Watch.RunPicker.Placeholder"
+                                  loc:Loc.Tooltip="Watch.RunPicker.Tooltip" />
+                        <Button loc:Loc.Content="Watch.CopyTimelineButton"
+                                Command="{x:Bind Watch.CopyTimelineCommand}"
+                                Style="{StaticResource Action}"
+                                loc:Loc.Tooltip="Watch.CopyTimelineButton.Tooltip" />
+                        <Button loc:Loc.Content="Watch.SaveRegistryButton"
+                                Command="{x:Bind Watch.SaveRegistryCommand}"
+                                Style="{StaticResource Action}"
+                                loc:Loc.Tooltip="Watch.SaveRegistryButton.Tooltip" />
+                        <CheckBox loc:Loc.Content="Watch.ShowEveryEventCheckBox"
+                                  IsChecked="{x:Bind Watch.ShowEveryEvent, Mode=TwoWay}"
+                                  Style="{StaticResource AlkCheckBox}"
+                                  loc:Loc.Tooltip="Watch.ShowEveryEventCheckBox.Tooltip" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border Padding="14" CornerRadius="0"
+                        Background="{StaticResource AlkSurfaceBrush}"
+                        BorderBrush="{StaticResource AlkHairlineBrush}"
+                        BorderThickness="1">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{x:Bind Watch.TimelineHeadline, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                   Foreground="{StaticResource AlkPrimaryBrush}"
+                                   Visibility="{x:Bind Watch.TimelineHeadline, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                        <TextBlock Text="{x:Bind Watch.TimelineObserved, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        <TextBlock Text="{x:Bind Watch.TimelineImplied, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                   Foreground="{StaticResource AlkSteelGrayBrush}" />
+                        <TextBlock Text="{x:Bind Watch.TimelineCounts, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                   Foreground="{StaticResource AlkSteelGrayBrush}"
+                                   Visibility="{x:Bind Watch.TimelineCounts, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                    </StackPanel>
+                </Border>
+
+                <ItemsControl ItemsSource="{x:Bind Watch.TimelineRows}"
+                              ItemTemplate="{StaticResource TimelineRow}"
+                              Visibility="{x:Bind Watch.HasTimeline, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                <Expander HorizontalAlignment="Stretch"
+                          loc:Loc.Header="Watch.PatchesExpander"
+                          Visibility="{x:Bind Watch.HasTimeline, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                          loc:Loc.Tooltip="Watch.PatchesExpander.Tooltip">
+                    <StackPanel Spacing="8">
+                        <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                   Foreground="{StaticResource AlkSteelGrayBrush}"
+                                   loc:Loc.Text="Watch.PatchesExpander.Description" />
+                        <ItemsControl ItemsSource="{x:Bind Watch.PatchesByModule}" ItemTemplate="{StaticResource PatchRow}" />
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+
+            <StackPanel Grid.Row="5" Margin="0,20,0,0" Spacing="6">
+                <TextBlock loc:Loc.Text="Watch.TraceHeading" Style="{StaticResource SubHeadingText}" />
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           Text="{x:Bind Watch.TracePath, Mode=OneWay}" IsTextSelectionEnabled="True" />
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           loc:Loc.Text="Watch.TraceFrequencyText" />
+                <!-- The companion is one of two things watching a session. The other runs whether or not
+                     anything is being watched, and it is what held the evidence for a crash that was
+                     answered with "nothing was measured". Both are said here, beside each other. -->
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           loc:Loc.Text="Watch.TraceScopeText" />
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.BootChecksPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:views="using:BannerlordEnvironmentManager.Views"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    Loaded="OnPageLoaded"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibility" />
+
+        <DataTemplate x:Key="IssueAction" x:DataType="vm:KnownIssueActionViewModel">
+            <Button Content="{x:Bind Label}" Command="{x:Bind Command}" CommandParameter="{x:Bind Parameter}"
+                    Style="{StaticResource Action}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                    ToolTipService.ToolTip="{x:Bind Tooltip}" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="KnownIssueRow" x:DataType="vm:KnownIssueRowViewModel">
+            <Border Background="{StaticResource AlkSurfaceRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Padding="10" CornerRadius="0" Margin="0,0,0,8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind Heading}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" ToolTipService.ToolTip="{x:Bind Heading}" />
+                    <TextBlock Text="{x:Bind DetailAndNote}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <ItemsControl ItemsSource="{x:Bind Actions}" ItemTemplate="{StaticResource IssueAction}"
+                                  Visibility="{x:Bind Actions.Count, Converter={StaticResource CountToVisibility}}" />
+                    <Button loc:Loc.Content="BootChecks.AcceptRiskButton" Click="OnAcceptFindingClicked" Tag="{x:Bind}"
+                            Style="{StaticResource Action}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                            loc:Loc.Tooltip="BootChecks.AcceptRiskButton.Tooltip"
+                            Visibility="{x:Bind CanAcceptRisk, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- One captured run. The header is what BEM observed about it, the rows underneath are what
+             its own files say, and the run BEM last started is not always the one being asked about. -->
+        <DataTemplate x:Key="RunEvidenceRow" x:DataType="vm:RunEvidenceRowViewModel">
+            <StackPanel Spacing="6" Margin="0,0,0,14">
+                <TextBlock Text="{x:Bind Title}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" ToolTipService.ToolTip="{x:Bind Title}" />
+                <TextBlock Text="{x:Bind Body}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                <ItemsControl ItemsSource="{x:Bind Actions}" ItemTemplate="{StaticResource IssueAction}" />
+                <ItemsControl ItemsSource="{x:Bind Findings}" ItemTemplate="{StaticResource KnownIssueRow}" Margin="0,6,0,0" />
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Padding="20,14,20,16">
+        <Grid RowSpacing="12">
+            <!-- The checks panel is what this page exists for. What used to take its height was the
+                 status line under it, written while a dry run proceeds and sized to its own text; it
+                 declares a fixed share now, so this row is simply what is left and shrinks smoothly
+                 with the window without pushing anything off. That is the order these regions give up
+                 size in: the status keeps its height, the panel absorbs the difference and scrolls
+                 inside whatever it has. -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="BootChecks.Title" BlurbKey="BootChecks.Blurb" />
+
+            <Border Grid.Row="1" Background="{StaticResource AlkSurfaceBrush}" Padding="12" CornerRadius="0" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="20" MaxWidth="1100" HorizontalAlignment="Left">
+                        <StackPanel Spacing="10">
+                            <controls:SectionHeader TitleKey="BootChecks.BootCheckSection"
+                                                    loc:Loc.Tooltip="BootChecks.BootCheckSection.Tooltip" />
+                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Button loc:Loc.Content="BootChecks.CheckBootsButton" Command="{x:Bind EnvironmentViewModel.CheckLoadOrderBootsCommand}" Style="{StaticResource Action}" MinWidth="210"
+                                        loc:Loc.Tooltip="BootChecks.CheckBootsButton.Tooltip" />
+                                <Button loc:Loc.Content="BootChecks.CancelDryRunButton" Command="{x:Bind EnvironmentViewModel.CancelDryRunCommand}" Style="{StaticResource Action}" MinWidth="90"
+                                        loc:Loc.Tooltip="BootChecks.CancelDryRunButton.Tooltip" />
+                                <ProgressRing IsActive="{x:Bind EnvironmentViewModel.IsDryRunning, Mode=OneWay}" Width="20" Height="20" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Bind EnvironmentViewModel.DryRunProgressText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Visibility="{x:Bind EnvironmentViewModel.DryRunProgressText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="10"
+                                    Visibility="{x:Bind DiagnosticsViewModel.DryRunSummary, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}">
+                            <controls:SectionHeader TitleKey="BootChecks.LastBootCheckSection"
+                                                    loc:Loc.Tooltip="BootChecks.LastBootCheckSection.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.DryRunSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.DryRunFindings}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <!-- Read from BEM's own capture store rather than from the last verdict. A run
+                             that captured twelve logs was once reported as "nothing was measured",
+                             because the only thing read was whether the companion had written. -->
+                        <StackPanel Spacing="10">
+                            <controls:SectionHeader TitleKey="BootChecks.RunsCapturedSection"
+                                                    loc:Loc.Tooltip="BootChecks.RunsCapturedSection.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.RunEvidenceSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                            <Button loc:Loc.Content="BootChecks.RereadRunsButton" Command="{x:Bind DiagnosticsViewModel.ReadRunEvidenceCommand}" Style="{StaticResource Action}"
+                                    HorizontalAlignment="Left"
+                                    loc:Loc.Tooltip="BootChecks.RereadRunsButton.Tooltip" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.RunEvidenceRows}" ItemTemplate="{StaticResource RunEvidenceRow}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="10" Visibility="{x:Bind views:PageDensity.Show(Navigation.IsAdvancedMode, DiagnosticsViewModel.HasFirstChance), Mode=OneWay}">
+                            <controls:SectionHeader TitleKey="BootChecks.FirstChanceSection" BlurbKey="BootChecks.FirstChanceSection.Blurb"
+                                                    loc:Loc.Tooltip="BootChecks.FirstChanceSection.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.FirstChanceSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                            <Button loc:Loc.Content="BootChecks.RereadTraceButton" Command="{x:Bind DiagnosticsViewModel.ReadFirstChanceTraceCommand}" Style="{StaticResource Action}"
+                                    HorizontalAlignment="Left"
+                                    loc:Loc.Tooltip="BootChecks.RereadTraceButton.Tooltip" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.FirstChance}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <!-- Bisection is demand-driven. It is offered from the crash report that
+                             motivated it and from a boot check that failed, and it is the only
+                             thing in BEM allowed to say a mod caused anything. -->
+                        <StackPanel Spacing="10">
+                            <controls:SectionHeader TitleKey="BootChecks.BisectionSection" BlurbKey="BootChecks.BisectionSection.Blurb"
+                                                    loc:Loc.Tooltip="BootChecks.BisectionSection.Tooltip" />
+
+                            <TextBox loc:Loc.Header="BootChecks.ReproductionStepBox.Header"
+                                     loc:Loc.Placeholder="BootChecks.ReproductionStepBox.Placeholder"
+                                     Text="{x:Bind DiagnosticsViewModel.BisectionReproductionStep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     HorizontalAlignment="Stretch" MaxWidth="640"
+                                     loc:Loc.Tooltip="BootChecks.ReproductionStepBox.Tooltip" />
+
+                            <!-- The scope. A search over this load order starts from about two hundred
+                                 mods and re-derives whatever the user already worked out by hand, at
+                                 one several-minute launch per step. Everything here is set, read back
+                                 and correctable before the first run, because a scope entered wrong
+                                 costs a launch per mistake. -->
+                            <Expander HorizontalAlignment="Stretch" MaxWidth="900"
+                                      loc:Loc.Tooltip="BootChecks.ScopeExpander.Tooltip">
+                                <Expander.Header>
+                                    <TextBlock loc:Loc.Text="BootChecks.ScopeExpander.Header" Style="{StaticResource SubHeadingText}" />
+                                </Expander.Header>
+                                <StackPanel Spacing="10" Margin="0,8,0,0">
+                                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                               loc:Loc.Text="BootChecks.ScopeExpander.Blurb" />
+
+                                    <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionScopeSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                                    <!-- Three buttons that cannot shrink, and the page scroller around them only ever moves
+                                         vertically, so below about 450 px of width the last of them sat past the right edge with
+                                         no bar able to reach it. Each of these command rows scrolls sideways inside its own
+                                         container instead of declaring a width the window has to honor. The inner bar and the
+                                         outer one share no axis, so there is still one bar per direction and no doubt about
+                                         which one the wheel is moving. -->
+                                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button loc:Loc.Content="BootChecks.ListModsButton" Command="{x:Bind DiagnosticsViewModel.LoadBisectionScopeCandidatesCommand}" Style="{StaticResource Action}" MinWidth="140"
+                                                    loc:Loc.Tooltip="BootChecks.ListModsButton.Tooltip" />
+                                            <Button loc:Loc.Content="BootChecks.ClearScopeButton" Command="{x:Bind DiagnosticsViewModel.ClearBisectionScopeCommand}" Style="{StaticResource Action}" MinWidth="140"
+                                                    loc:Loc.Tooltip="BootChecks.ClearScopeButton.Tooltip" />
+                                            <Button loc:Loc.Content="BootChecks.CopyScopeButton" Command="{x:Bind DiagnosticsViewModel.CopyBisectionScopeCommand}" Style="{StaticResource Action}" MinWidth="140"
+                                                    loc:Loc.Tooltip="BootChecks.CopyScopeButton.Tooltip" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+
+                                    <TextBox loc:Loc.Header="BootChecks.ScopeFilterBox.Header"
+                                             loc:Loc.Placeholder="BootChecks.ScopeFilterBox.Placeholder"
+                                             Text="{x:Bind DiagnosticsViewModel.BisectionScopeFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             HorizontalAlignment="Stretch" MaxWidth="420"
+                                             loc:Loc.Tooltip="BootChecks.ScopeFilterBox.Tooltip" />
+
+                                    <!-- The one list here that keeps a height of its own, and it is not
+                                         an oversight. It is the scope, about two hundred rows with a
+                                         filter above it, and it sits in an Expander that is shut until
+                                         someone opens it deliberately to work in it, which is the one
+                                         state where both bars show and the inner one is the bar in use.
+                                         Letting it size to its content instead realizes every row at
+                                         open and buries the sections below the Expander behind two
+                                         hundred rows of scrolling, which is the larger defect. -->
+                                    <ListView ItemsSource="{x:Bind DiagnosticsViewModel.BisectionScopeRows}"
+                                              SelectionMode="None" MaxHeight="280" Background="Transparent" BorderThickness="0">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:BisectionScopeRowViewModel">
+                                                <Grid ColumnSpacing="10" Padding="2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <CheckBox IsChecked="{x:Bind IsInScope, Mode=TwoWay}" MinWidth="0"
+                                                              AutomationProperties.Name="{x:Bind Detail}"
+                                                              loc:Loc.Tooltip="BootChecks.InScopeCheckBox.Tooltip" />
+                                                    <CheckBox Grid.Column="1" IsChecked="{x:Bind WasOn, Mode=TwoWay}" MinWidth="0"
+                                                              IsEnabled="{x:Bind CanBeInAnObservation, Mode=OneWay}"
+                                                              AutomationProperties.Name="{x:Bind Detail}"
+                                                              loc:Loc.Tooltip="BootChecks.WasOnCheckBox.Tooltip" />
+                                                    <StackPanel Grid.Column="2" Spacing="1">
+                                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyText}" IsTextSelectionEnabled="False" />
+                                                        <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                                                   TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="False" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+
+                                    <!-- Runs the user has already made. A scoped search that re-asks
+                                         them is the same waste in a smaller box. Nothing here is
+                                         inferred: a record only answers a run whose configuration
+                                         matches it module for module, and it never answers one of the
+                                         three runs that measure how reliably the crash happens. -->
+                                    <TextBlock loc:Loc.Text="BootChecks.ObservationsHeading" Style="{StaticResource SubHeadingText}"
+                                               loc:Loc.Tooltip="BootChecks.ObservationsHeading.Tooltip" />
+                                    <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                               loc:Loc.Text="BootChecks.ObservationsHeading.Blurb" />
+
+                                    <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionObservationPreview, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                               Visibility="{x:Bind DiagnosticsViewModel.BisectionObservationPreview, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button loc:Loc.Content="BootChecks.RecordCrashedButton" Command="{x:Bind DiagnosticsViewModel.RecordBisectionRunCrashedCommand}" Style="{StaticResource Action}" MinWidth="160"
+                                                    loc:Loc.Tooltip="BootChecks.RecordCrashedButton.Tooltip" />
+                                            <Button loc:Loc.Content="BootChecks.RecordDidNotCrashButton" Command="{x:Bind DiagnosticsViewModel.RecordBisectionRunDidNotCrashCommand}" Style="{StaticResource Action}" MinWidth="190"
+                                                    loc:Loc.Tooltip="BootChecks.RecordDidNotCrashButton.Tooltip" />
+                                            <Button loc:Loc.Content="BootChecks.ForgetObservationButton" Command="{x:Bind DiagnosticsViewModel.ForgetBisectionObservationCommand}" Style="{StaticResource DangerAction}" MinWidth="150"
+                                                    loc:Loc.Tooltip="BootChecks.ForgetObservationButton.Tooltip" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+
+                                    <!-- No height of its own. A bisection records one observation per
+                                         launch and narrows by halving, so this list is a handful of
+                                         rows; held to 140 px it scrolled inside the page's scroller,
+                                         which put a second bar beside the first with nothing to say
+                                         which one the wheel was moving. -->
+                                    <ListView ItemsSource="{x:Bind DiagnosticsViewModel.BisectionObservations}"
+                                              SelectedItem="{x:Bind DiagnosticsViewModel.SelectedBisectionObservation, Mode=TwoWay}"
+                                              SelectionMode="Single" Background="Transparent" BorderThickness="0"
+                                              Visibility="{x:Bind DiagnosticsViewModel.BisectionObservations.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:BisectionObservationRowViewModel">
+                                                <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="False" Padding="2" />
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </StackPanel>
+                            </Expander>
+
+                            <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button loc:Loc.Content="BootChecks.GuidedBisectionButton" Command="{x:Bind DiagnosticsViewModel.StartGuidedBisectionCommand}" Style="{StaticResource PrimaryAction}" MinWidth="200"
+                                            loc:Loc.Tooltip="BootChecks.GuidedBisectionButton.Tooltip" />
+                                    <Button loc:Loc.Content="BootChecks.AutoBisectionButton" Command="{x:Bind DiagnosticsViewModel.StartAutomaticBisectionCommand}" Style="{StaticResource Action}" MinWidth="170"
+                                            loc:Loc.Tooltip="BootChecks.AutoBisectionButton.Tooltip" />
+                                    <Button loc:Loc.Content="BootChecks.StopBisectionButton" Command="{x:Bind DiagnosticsViewModel.CancelBisectionCommand}" Style="{StaticResource Action}" MinWidth="140"
+                                            loc:Loc.Tooltip="BootChecks.StopBisectionButton.Tooltip" />
+                                    <ProgressRing IsActive="{x:Bind DiagnosticsViewModel.IsBisecting, Mode=OneWay}" Width="20" Height="20" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionStatus, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Visibility="{x:Bind DiagnosticsViewModel.BisectionStatus, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionConfigReport, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Visibility="{x:Bind DiagnosticsViewModel.BisectionConfigReport, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                            <Border Background="{StaticResource AlkSurfaceRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Padding="10" CornerRadius="0"
+                                    Visibility="{x:Bind DiagnosticsViewModel.HasPendingExperiment, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionExperimentText, Mode=OneWay}" Style="{StaticResource SubHeadingText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionInstruction, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button loc:Loc.Content="BootChecks.LaunchRunButton" Command="{x:Bind DiagnosticsViewModel.LaunchBisectionExperimentCommand}" Style="{StaticResource PrimaryAction}" MinWidth="150"
+                                                loc:Loc.Tooltip="BootChecks.LaunchRunButton.Tooltip" />
+                                        <Button loc:Loc.Content="BootChecks.FinishedRunButton" Command="{x:Bind DiagnosticsViewModel.FinishBisectionRunCommand}" Style="{StaticResource Action}" MinWidth="170"
+                                                loc:Loc.Tooltip="BootChecks.FinishedRunButton.Tooltip" />
+                                    </StackPanel>
+                                    <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionQuestion, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                               Visibility="{x:Bind DiagnosticsViewModel.BisectionQuestion, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button loc:Loc.Content="BootChecks.ReportCrashedButton" Command="{x:Bind DiagnosticsViewModel.ReportCrashedCommand}" Style="{StaticResource Action}" MinWidth="120"
+                                                    loc:Loc.Tooltip="BootChecks.ReportCrashedButton.Tooltip" />
+                                            <Button loc:Loc.Content="BootChecks.ReportDidNotCrashButton" Command="{x:Bind DiagnosticsViewModel.ReportDidNotCrashCommand}" Style="{StaticResource Action}" MinWidth="150"
+                                                    loc:Loc.Tooltip="BootChecks.ReportDidNotCrashButton.Tooltip" />
+                                            <Button loc:Loc.Content="BootChecks.NoInformationButton" Command="{x:Bind DiagnosticsViewModel.ReportToldUsNothingCommand}" Style="{StaticResource Action}" MinWidth="200"
+                                                    loc:Loc.Tooltip="BootChecks.NoInformationButton.Tooltip" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.BisectionConclusionText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Visibility="{x:Bind DiagnosticsViewModel.BisectionConclusionText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                            <!-- Straight under the conclusion, because the conclusion is the evidence a
+                                 report is built out of and a search that named a mod with nothing to do
+                                 about it afterwards is half a feature. -->
+                            <views:BugReportPanel />
+
+                            <TextBlock loc:Loc.Text="BootChecks.SessionsHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="BootChecks.SessionsHeading.Tooltip"
+                                       Visibility="{x:Bind DiagnosticsViewModel.BisectionSessions.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}" />
+                            <!-- No height of its own, for the reason the observations above have none:
+                                 this is one row per saved session and it sat in the page's scroller
+                                 behind a second bar of its own. -->
+                            <ListView ItemsSource="{x:Bind DiagnosticsViewModel.BisectionSessions}"
+                                      SelectedItem="{x:Bind DiagnosticsViewModel.SelectedBisectionSession, Mode=TwoWay}"
+                                      SelectionMode="Single" Background="Transparent" BorderThickness="0"
+                                      ContextRequested="OnBisectionSessionContextRequested"
+                                      Visibility="{x:Bind DiagnosticsViewModel.BisectionSessions.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                                <ListView.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem loc:Loc.Text="BootChecks.CopySessionRowMenuItem" Command="{x:Bind DiagnosticsViewModel.CopyBisectionSessionCommand}"
+                                                        loc:Loc.Tooltip="BootChecks.CopySessionRowMenuItem.Tooltip" />
+                                        <MenuFlyoutItem loc:Loc.Text="BootChecks.CopyFailingModulesMenuItem" Command="{x:Bind DiagnosticsViewModel.CopyBisectionFailingCommand}"
+                                                        loc:Loc.Tooltip="BootChecks.CopyFailingModulesMenuItem.Tooltip" />
+                                        <MenuFlyoutItem loc:Loc.Text="BootChecks.CopyBackupPathMenuItem" Command="{x:Bind DiagnosticsViewModel.CopyBisectionBackupPathCommand}"
+                                                        loc:Loc.Tooltip="BootChecks.CopyBackupPathMenuItem.Tooltip" />
+                                    </MenuFlyout>
+                                </ListView.ContextFlyout>
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BisectionSessionRowViewModel">
+                                        <!-- Picking a row is how a session is resumed or deleted, so its text
+                                             opts out of selection rather than swallowing the click. The
+                                             handler here is the half that cannot be skipped: ContextRequested
+                                             bubbles, so the one on the list runs only if nothing in between
+                                             marked the event handled, while the framework shows the flyout
+                                             either way. -->
+                                        <StackPanel Spacing="1" Padding="2" Background="Transparent"
+                                                    ContextRequested="OnBisectionSessionRowContextRequested">
+                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyText}" IsTextSelectionEnabled="False" />
+                                            <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSteelGrayBrush}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                       IsTextSelectionEnabled="False" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        Visibility="{x:Bind DiagnosticsViewModel.BisectionSessions.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                                <Button loc:Loc.Content="BootChecks.ResumeSessionButton" Command="{x:Bind DiagnosticsViewModel.ResumeBisectionCommand}" Style="{StaticResource Action}"
+                                        loc:Loc.Tooltip="BootChecks.ResumeSessionButton.Tooltip" />
+                                <Button loc:Loc.Content="BootChecks.DeleteSessionButton" Command="{x:Bind DiagnosticsViewModel.DeleteBisectionCommand}" Style="{StaticResource DangerAction}"
+                                        loc:Loc.Tooltip="BootChecks.DeleteSessionButton.Tooltip" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Fixed height on purpose. The line rewrites itself while a dry run proceeds and each
+                 message is a different length, so a label that sized to its own text moved the panel
+                 above it on every rewrite. Two lines, then the ellipsis, and the whole message on the
+                 hover. -->
+            <Grid Grid.Row="2" Height="40">
+                <TextBlock Text="{x:Bind DiagnosticsViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource BodyText}"
+                           TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Top"
+                           IsTextSelectionEnabled="True"
+                           ToolTipService.ToolTip="{x:Bind DiagnosticsViewModel.StatusMessage, Mode=OneWay}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

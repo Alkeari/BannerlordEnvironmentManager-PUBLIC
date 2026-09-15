@@ -1,0 +1,42 @@
+Bannerlord Environment Manager 3.5.0
+
+What this release was built and tested against. Nothing here is widened without a test: a newer
+Bannerlord build alone does not change it, and a version absent from this list is not claimed to
+fail, only to be unexercised.
+
+Game versions exercised against a real install
+    v1.2.12               launched through BLSE (Direct) under its own instance and run to a normal
+                          exit
+    v1.3.15 + War Sails   launched through BLSE (Direct) under its own instance and run to a normal
+                          exit, including a first launch that started on the shared game settings
+    v1.4.7 + War Sails    downloaded by BEM, load order written, launched through BLSE (Direct)
+                          and played to the end of a session
+    v1.4.8                an existing Steam install, adopted in place and managed as a referenced
+                          instance
+    v1.5.2 + War Sails    downloaded by BEM from Steam, base app 261550 on branch beta followed by
+                          War Sails app 2927200, recorded as one variant instance
+
+DLC BEM can build a variant for
+    War Sails             Steam app 2927200, a DLC of base app 261550
+
+Game platforms
+    Steam                 downloading and adopting
+    Epic, Game Pass       adopting an existing install only
+    GOG                   adopting an existing install only, and found automatically only in GOG's
+                          default folders
+
+Mod loaders
+    BLSE                  BLSE (Direct) is the launch target BEM uses for any version that is not
+                          the one resting at the game's own folders, because a launcher hands off
+                          and exits, leaving nothing to keep that version's data separate
+
+Runtime
+    Windows 10 or later, 64-bit
+    .NET 10, self-contained: no runtime for the user to install
+    Windows App SDK, single-file build, x64
+
+Not exercised in this release
+    Adding a DLC to an instance built in an earlier session. The v1.5.2 variant above downloaded its
+    base and its DLC in one flow, which proves the variant path but not this one.
+    Any Bannerlord version other than the five listed above.
+    Any DLC other than War Sails.
