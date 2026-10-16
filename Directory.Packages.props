@@ -1,0 +1,25 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
+        <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7175" />
+        <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <PackageVersion Include="System.Management" Version="10.0.11" />
+        <PackageVersion Include="ICSharpCode.Decompiler" Version="11.0.0.9375" />
+        <!-- ClrMD, Microsoft's own dump reader, held at 3.1 on purpose. 4.0 reads the same .NET
+             Framework dumps through the same calls and drags in Azure.Identity and MSAL for symbol
+             server sign-in: 19 dependency assemblies against 11, and an identity stack next to the
+             folder holding the Nexus API key. Nothing here ever signs in or downloads a symbol. -->
+        <PackageVersion Include="Microsoft.Diagnostics.Runtime" Version="3.1.512801" />
+        <!-- Microsoft's own System.Diagnostics.Eventing.Reader, which is not in the shared framework
+             on any target and only ever ships as this package. It is what reads the Windows Application
+             event log; nothing here writes an event, clears a log or needs elevation. -->
+        <PackageVersion Include="System.Diagnostics.EventLog" Version="10.0.3" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+        <PackageVersion Include="xunit.v3" Version="3.2.2" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+        <PackageVersion Include="FluentAssertions" Version="7.2.0" />
+    </ItemGroup>
+</Project>

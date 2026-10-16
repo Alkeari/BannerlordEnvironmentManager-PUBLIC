@@ -1,0 +1,10 @@
+{
+	"profiles": {
+		"Bannerlord Environment Manager (Package)": {
+			"commandName": "MsixPackage"
+		},
+		"Bannerlord Environment Manager (Unpackaged)": {
+			"commandName": "Project"
+		}
+	}
+}

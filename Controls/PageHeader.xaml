@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Controls.PageHeader"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <!-- One band, not three. Every page opened with a title, a paragraph explaining the page, and a
+         row of buttons under a gutter label, which cost about 130px before the first thing the page
+         is actually for. The paragraph is not deleted: it moves behind Why?, where someone who wants
+         it can still select and copy it. -->
+    <Grid ColumnSpacing="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock x:Name="TitleText" Style="{StaticResource PageTitleText}" VerticalAlignment="Center"
+                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" />
+            <Button x:Name="WhyButton" loc:Loc.Content="Controls.PageHeader.Why" Style="{StaticResource Quiet}" VerticalAlignment="Center"
+                    loc:Loc.Tooltip="Controls.PageHeader.Why.Tooltip">
+                <Button.Flyout>
+                    <Flyout>
+                        <TextBlock x:Name="BlurbText" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                   MaxWidth="440" IsTextSelectionEnabled="True" />
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+        </StackPanel>
+
+        <!-- The actions slot is a horizontal StackPanel on every page that fills it, and a StackPanel
+             measures what it holds against an unbounded width, so a row of commands states a width
+             the window has to honor and the widest of them ask for 700 to 900 px. The title column
+             is Auto and small, the longest of them about 200 px, so the star column here is what
+             runs short first, and the row that used to sit past the right edge scrolls inside it
+             instead. Sideways only: the page's own scroller, where there is one, is vertical, so
+             the two never share an axis and there is one bar per direction. -->
+        <ScrollViewer Grid.Column="1" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
+                      HorizontalAlignment="Right" VerticalAlignment="Center">
+            <ContentPresenter x:Name="ActionsHost" Content="{x:Bind Actions, Mode=OneWay}" />
+        </ScrollViewer>
+    </Grid>
+</UserControl>
