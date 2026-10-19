@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Controls.Pill"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- A mark on a row. Three kinds and no more: amber is something to do, olive-gold is checked
+         and clear, steel gray is identity and never competes for the eye. -->
+    <Border x:Name="PillBorder" Style="{StaticResource Mark}">
+        <TextBlock x:Name="PillText" Style="{StaticResource MarkText}" />
+    </Border>
+</UserControl>

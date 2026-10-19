@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ModOverlapsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:views="using:BannerlordEnvironmentManager.Views"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    Loaded="OnPageLoaded"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibility" />
+
+        <DataTemplate x:Key="IssueAction" x:DataType="vm:KnownIssueActionViewModel">
+            <Button Content="{x:Bind Label}" Command="{x:Bind Command}" CommandParameter="{x:Bind Parameter}"
+                    Style="{StaticResource Action}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                    ToolTipService.ToolTip="{x:Bind Tooltip}" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="KnownIssueRow" x:DataType="vm:KnownIssueRowViewModel">
+            <Border Background="{StaticResource AlkSurfaceRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Padding="10" CornerRadius="0" Margin="0,0,0,8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind Heading}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" ToolTipService.ToolTip="{x:Bind Heading}" />
+                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Text="{x:Bind Note}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}" Visibility="{x:Bind Note, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                    <ItemsControl ItemsSource="{x:Bind Actions}" ItemTemplate="{StaticResource IssueAction}"
+                                  Visibility="{x:Bind Actions.Count, Converter={StaticResource CountToVisibility}}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- One contested value, written for a person by XmlContest.Describe. It wraps: the row sits
+             inside the page's own scroller, and the sideways scroller a NoWrap column needed put a
+             second bar inside the first, which is unreadable and hides nothing a wrap does not show. -->
+        <DataTemplate x:Key="ContestLine" x:DataType="x:String">
+            <TextBlock Text="{x:Bind}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSoftChampagneBrush}"
+                       TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,0,0,3" />
+        </DataTemplate>
+
+        <!-- A contested attribute is compared, not read. The header carries the only three facts that
+             decide whether a row matters, so dozens of them scan down the column; the contested values
+             themselves, the ids and the remedy sit behind the disclosure. -->
+        <DataTemplate x:Key="XmlOverlapRow" x:DataType="vm:XmlOverlapRowViewModel">
+            <Expander HorizontalAlignment="Stretch" IsExpanded="False" Margin="0,0,0,4" Padding="12,2,12,8"
+                      AutomationProperties.Name="{x:Bind AutomationName}"
+                      Expanding="{x:Bind RealizeContests}">
+                <Expander.Header>
+                    <StackPanel Spacing="1" Padding="0,4"
+                                loc:Loc.Tooltip="Overlaps.XmlOverlapRow.Tooltip">
+                        <!-- The header is the toggle that opens the row, so its text opts out of selection.
+                             It is trimmed to one line anyway; the full values below stay selectable. -->
+                        <TextBlock Text="{x:Bind Headline}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="False" />
+                        <TextBlock Text="{x:Bind Outcome}" Style="{StaticResource BodyText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="False" />
+                        <TextBlock Text="{x:Bind Grade}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSteelGrayBrush}" TextWrapping="NoWrap" IsTextSelectionEnabled="False" />
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Spacing="6" Margin="0,6,0,0">
+                    <TextBlock Text="{x:Bind ContestedPath}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSoftChampagneBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Text="{x:Bind Chain}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Text="{x:Bind ContestsCaption}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSteelGrayBrush}" TextWrapping="Wrap"
+                               Visibility="{x:Bind ContestsCaption, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                    <!-- The disclosure is opened deliberately and sits in the page's one scroller, so
+                         its contents size to themselves and the page carries them. Capping them here
+                         put a second scrollbar alongside the page's, close enough to run into it, and
+                         a reader who cannot tell which bar is moving reads the section as broken. -->
+                    <ItemsControl ItemsSource="{x:Bind Contests}" ItemTemplate="{StaticResource ContestLine}"
+                                  Visibility="{x:Bind ContestLines.Count, Converter={StaticResource CountToVisibility}}" />
+                    <ItemsControl ItemsSource="{x:Bind Actions}" ItemTemplate="{StaticResource IssueAction}"
+                                  Visibility="{x:Bind Actions.Count, Converter={StaticResource CountToVisibility}}" />
+                    <TextBlock Text="{x:Bind IdsCaption}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSteelGrayBrush}" TextWrapping="Wrap" />
+                    <!-- The module ids are read in full, in the page's one scroller. Held to 120 px
+                         they showed about one id at a time behind a bar of their own that the reader
+                         could not tell from the page's. -->
+                    <TextBlock Text="{x:Bind Ids}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </Expander>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Padding="20,14,20,16">
+        <Grid RowSpacing="12">
+            <!-- The findings panel is what this page exists for. What used to take its height was the
+                 status in the header, which is written when the panel is fullest; it is capped to one
+                 line now, so this row is simply what is left and shrinks smoothly with the window,
+                 down to nothing without pushing anything off. That is the order these regions give up
+                 size in: the header keeps its height, the panel absorbs the difference and scrolls
+                 inside whatever it has. -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="Overlaps.Title" BlurbKey="Overlaps.Blurb">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button loc:Loc.Content="Overlaps.CheckInstallButton" Command="{x:Bind DiagnosticsViewModel.CheckInstallCommand}" Style="{StaticResource PrimaryAction}" MinWidth="200"
+                            loc:Loc.Tooltip="Overlaps.CheckInstallButton.Tooltip" />
+                    <ProgressRing IsActive="{x:Bind DiagnosticsViewModel.IsCheckingInstall, Mode=OneWay}" Width="28" Height="28" />
+                    <!-- Capped and trimmed to one line. The header's actions slot is a horizontal
+                         StackPanel, which measures what it holds against an unbounded width, so Wrap
+                         never fired here: a long status simply ran the row past the header and over
+                         the title beside it. The whole message is on the hover. -->
+                    <TextBlock Text="{x:Bind DiagnosticsViewModel.KnownIssuesStatus, Mode=OneWay}" Style="{StaticResource BodyText}"
+                               MaxWidth="360" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}" VerticalAlignment="Center"
+                               ToolTipService.ToolTip="{x:Bind DiagnosticsViewModel.KnownIssuesStatus, Mode=OneWay}" />
+                </StackPanel>
+            </controls:PageHeader>
+
+
+            <Border Grid.Row="1" Background="{StaticResource AlkSurfaceBrush}" Padding="12" CornerRadius="0" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1"
+                    ContextRequested="OnKnownIssueContextRequested">
+                <Border.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem loc:Loc.Text="Overlaps.CopyIssueMenuItem" Command="{x:Bind DiagnosticsViewModel.CopyIssueCommand}"
+                                        loc:Loc.Tooltip="Overlaps.CopyIssueMenuItem.Tooltip" />
+                        <MenuFlyoutItem loc:Loc.Text="Overlaps.OpenModuleFolderMenuItem" Command="{x:Bind DiagnosticsViewModel.OpenIssueModuleFolderCommand}"
+                                        loc:Loc.Tooltip="Overlaps.OpenModuleFolderMenuItem.Tooltip" />
+                        <MenuFlyoutItem loc:Loc.Text="Overlaps.ShowOnPlayMenuItem" Command="{x:Bind DiagnosticsViewModel.ShowIssueModuleOnPlayTabCommand}"
+                                        loc:Loc.Tooltip="Overlaps.ShowOnPlayMenuItem.Tooltip" />
+                    </MenuFlyout>
+                </Border.ContextFlyout>
+                <ScrollViewer>
+                    <StackPanel Spacing="20" MaxWidth="1100" HorizontalAlignment="Left">
+                        <!-- First on the page because nothing else on it matters on an install that
+                             cannot start a campaign. A row here is a place MBObjectManager throws, not a
+                             value it loses, so this list is empty on a working install. -->
+                        <StackPanel Spacing="10">
+                            <controls:SectionHeader TitleKey="Overlaps.MergeFaultsSection" BlurbKey="Overlaps.MergeFaultsSection.Blurb"
+                                                    loc:Loc.Tooltip="Overlaps.MergeFaultsSection.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.MergeFaultsSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Visibility="{x:Bind DiagnosticsViewModel.MergeFaultsSummary, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.MergeFaultsEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Foreground="{StaticResource AlkSuccessOliveGoldBrush}"
+                                       Visibility="{x:Bind DiagnosticsViewModel.MergeFaultsEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.MergeFaults}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="10">
+                            <controls:SectionHeader TitleKey="Overlaps.XmlOverlapsSection" BlurbKey="Overlaps.XmlOverlapsSection.Blurb"
+                                                    loc:Loc.Tooltip="Overlaps.XmlOverlapsSection.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlOverlapSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Visibility="{x:Bind DiagnosticsViewModel.XmlOverlapSummary, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                            <!-- The large majority of an install's overlaps lose nothing. Said in the
+                                 success color and phrased as a completed check, so the number can never
+                                 be read as a pile of work. -->
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlComposedText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Foreground="{StaticResource AlkSuccessOliveGoldBrush}"
+                                       Visibility="{x:Bind DiagnosticsViewModel.XmlComposedText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+                            <StackPanel Spacing="6">
+                                <TextBlock loc:Loc.Text="Overlaps.OverridingEachOtherHeading" Style="{StaticResource SubHeadingText}"
+                                           loc:Loc.Tooltip="Overlaps.OverridingEachOtherHeading.Tooltip" />
+                                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                           loc:Loc.Text="Overlaps.OverridingEachOtherHeading.Description" />
+                                <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlOverlapConflictsEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                           Visibility="{x:Bind DiagnosticsViewModel.XmlOverlapConflictsEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.XmlOverlapConflicts}" ItemTemplate="{StaticResource XmlOverlapRow}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="6" Visibility="{x:Bind views:PageDensity.Show(Navigation.IsAdvancedMode, DiagnosticsViewModel.HasBaseGameOverrides), Mode=OneWay}">
+                                <TextBlock loc:Loc.Text="Overlaps.OverridingBaseGameHeading" Style="{StaticResource SubHeadingText}"
+                                           loc:Loc.Tooltip="Overlaps.OverridingBaseGameHeading.Tooltip" />
+                                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                           loc:Loc.Text="Overlaps.OverridingBaseGameHeading.Description" />
+                                <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlOverlapOverridesEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                           Visibility="{x:Bind DiagnosticsViewModel.XmlOverlapOverridesEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.XmlOverlapOverrides}" ItemTemplate="{StaticResource XmlOverlapRow}" />
+                            </StackPanel>
+
+                            <!-- Not a gap and not an admission: BEM compiles each stylesheet a mod
+                                 registers and runs it against the document it built itself, in
+                                 memory, so what the transform adds or replaces is counted like any
+                                 other definition. Nothing under the install is opened for writing. -->
+                            <StackPanel Spacing="6" Visibility="{x:Bind views:PageDensity.Show(Navigation.IsAdvancedMode, DiagnosticsViewModel.HasXmlTransforms), Mode=OneWay}">
+                                <TextBlock loc:Loc.Text="Overlaps.TransformsHeading" Style="{StaticResource SubHeadingText}"
+                                           loc:Loc.Tooltip="Overlaps.TransformsHeading.Tooltip" />
+                                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                           loc:Loc.Text="Overlaps.TransformsHeading.Description" />
+                                <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlTransformsUncertainText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                           Foreground="{StaticResource AlkSoftChampagneBrush}"
+                                           Visibility="{x:Bind DiagnosticsViewModel.XmlTransformsUncertainText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlTransformsEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                           Visibility="{x:Bind DiagnosticsViewModel.XmlTransformsEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.XmlTransforms}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                            </StackPanel>
+
+                            <!-- These used to share a heading that named BEM as the thing at fault. A mod
+                                 that registers a file it never shipped is not BEM failing to read it, so
+                                 the heading says what the registrations did and each row says whose
+                                 situation it is. -->
+                            <StackPanel Spacing="6">
+                                <TextBlock loc:Loc.Text="Overlaps.NoEntriesHeading" Style="{StaticResource SubHeadingText}"
+                                           loc:Loc.Tooltip="Overlaps.NoEntriesHeading.Tooltip" />
+                                <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlDatasetProblemsEmptyText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                           Visibility="{x:Bind DiagnosticsViewModel.XmlDatasetProblemsEmptyText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                                <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.XmlDatasetProblems}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="6"
+                                        Visibility="{x:Bind views:PageDensity.Show(Navigation.IsAdvancedMode, DiagnosticsViewModel.XmlDatasetsLoadedElsewhereText), Mode=OneWay}">
+                                <TextBlock loc:Loc.Text="Overlaps.LoadedElsewhereHeading" Style="{StaticResource SubHeadingText}"
+                                           loc:Loc.Tooltip="Overlaps.LoadedElsewhereHeading.Tooltip" />
+                                <TextBlock Text="{x:Bind DiagnosticsViewModel.XmlDatasetsLoadedElsewhereText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                           Foreground="{StaticResource AlkSteelGrayBrush}" />
+                                <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.XmlDatasetsLoadedElsewhere}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="10"
+                                    Visibility="{x:Bind DiagnosticsViewModel.CollisionSummary, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}">
+                            <controls:SectionHeader TitleKey="Overlaps.CollisionsSection"
+                                                    loc:Loc.Tooltip="Overlaps.CollisionsSection.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.CollisionSummary, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                       loc:Loc.Text="Overlaps.CollisionsSection.Description" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.CollisionExclusions, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                                       Visibility="{x:Bind DiagnosticsViewModel.CollisionExclusions, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                            <ItemsControl ItemsSource="{x:Bind DiagnosticsViewModel.Collisions}" ItemTemplate="{StaticResource KnownIssueRow}" />
+                        </StackPanel>
+
+                        <!-- The list above is only as good as the registry it was read from, so what that
+                             registry is, and the thing that refreshes it, sit together underneath it. -->
+                        <StackPanel Spacing="6"
+                                    Visibility="{x:Bind views:PageDensity.Show(Navigation.IsAdvancedMode, DiagnosticsViewModel.PatchRegistryStatusText), Mode=OneWay}">
+                            <TextBlock loc:Loc.Text="Overlaps.RegistryHeading" Style="{StaticResource SubHeadingText}"
+                                       loc:Loc.Tooltip="Overlaps.RegistryHeading.Tooltip" />
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.PatchRegistryStatusText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                      Visibility="{x:Bind DiagnosticsViewModel.PatchRegistryDetailsText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}"
+                                      ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <Expander.Header>
+                                    <TextBlock loc:Loc.Text="Overlaps.ChangedModulesExpander" Style="{StaticResource BodyText}" IsTextSelectionEnabled="False"
+                                               loc:Loc.Tooltip="Overlaps.ChangedModulesExpander.Tooltip" />
+                                </Expander.Header>
+                                <StackPanel Spacing="8" Margin="0,8,0,0">
+                                    <TextBlock Text="{x:Bind DiagnosticsViewModel.PatchRegistryDetailsText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    <Button loc:Loc.Content="Overlaps.CopyModuleNamesButton" Command="{x:Bind DiagnosticsViewModel.CopyPatchRegistryDetailsCommand}" Style="{StaticResource Action}"
+                                            HorizontalAlignment="Left"
+                                            loc:Loc.Tooltip="Overlaps.CopyModuleNamesButton.Tooltip" />
+                                </StackPanel>
+                            </Expander>
+
+                            <Button loc:Loc.Content="Overlaps.CaptureRegistryButton" Command="{x:Bind DiagnosticsViewModel.RefreshPatchRegistryCommand}" Style="{StaticResource Action}"
+                                    HorizontalAlignment="Left"
+                                    Visibility="{x:Bind DiagnosticsViewModel.PatchRegistryNeedsRefresh, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                                    loc:Loc.Tooltip="Overlaps.CaptureRegistryButton.Tooltip" />
+
+                            <TextBlock Text="{x:Bind DiagnosticsViewModel.PatchRegistryCaptureOutcomeText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                       Foreground="{StaticResource AlkSteelGrayBrush}"
+                                       Visibility="{x:Bind DiagnosticsViewModel.PatchRegistryCaptureOutcomeText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Views.BugReportPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibility" />
+
+        <DataTemplate x:Key="BugReportSubjectRow" x:DataType="vm:BugReportSubjectViewModel">
+            <StackPanel Spacing="1" Padding="2">
+                <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyText}" IsTextSelectionEnabled="False" />
+                <TextBlock Text="{x:Bind Why}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSteelGrayBrush}"
+                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="False" />
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!-- One panel, shown on both surfaces the evidence lives on, bound to one view model. The crash
+         report page is where the exception is picked; the boot checks page is where the search that
+         isolated the mod is. A report drafted from either reads the same state, so the two are the
+         same feature reached twice rather than two half features. -->
+    <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+              ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+              Expanding="OnExpanding"
+              loc:Loc.Tooltip="BugReport.Expander.Tooltip">
+        <Expander.Header>
+            <TextBlock loc:Loc.Text="BugReport.Expander" Style="{StaticResource SubHeadingText}" IsTextSelectionEnabled="False" />
+        </Expander.Header>
+
+        <StackPanel Spacing="10" Margin="0,8,0,0" HorizontalAlignment="Left" MaxWidth="900">
+            <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Foreground="{StaticResource AlkSteelGrayBrush}"
+                       loc:Loc.Text="BugReport.Expander.Blurb" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button loc:Loc.Content="BugReport.ListModsButton" Command="{x:Bind Diagnostics.ListBugReportSubjectsCommand}" Style="{StaticResource Action}" MinWidth="140"
+                        loc:Loc.Tooltip="BugReport.ListModsButton.Tooltip" />
+                <Button loc:Loc.Content="BugReport.DraftButton" Command="{x:Bind Diagnostics.DraftBugReportCommand}" Style="{StaticResource PrimaryAction}" MinWidth="160"
+                        loc:Loc.Tooltip="BugReport.DraftButton.Tooltip" />
+                <Border Background="Transparent" loc:Loc.Tooltip="BugReport.DiscardButton.Tooltip">
+                    <Button loc:Loc.Content="BugReport.DiscardButton" Command="{x:Bind Diagnostics.DiscardBugReportCommand}" Style="{StaticResource Action}" MinWidth="120" />
+                </Border>
+                <ProgressRing IsActive="{x:Bind Diagnostics.BugReportBusy, Mode=OneWay}" Width="20" Height="20" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <ListView ItemsSource="{x:Bind Diagnostics.BugReportSubjects}"
+                      SelectedItem="{x:Bind Diagnostics.SelectedBugReportSubject, Mode=TwoWay}"
+                      ItemTemplate="{StaticResource BugReportSubjectRow}"
+                      SelectionMode="Single" MaxHeight="180" Background="Transparent" BorderThickness="0"
+                      loc:Loc.Tooltip="BugReport.SubjectsList.Tooltip"
+                      Visibility="{x:Bind Diagnostics.BugReportSubjects.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+            </ListView>
+
+            <TextBlock Text="{x:Bind Diagnostics.BugReportStatus, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                       Visibility="{x:Bind Diagnostics.BugReportStatus, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+            <!-- What the report is worth, said before it is posted rather than after. -->
+            <Border Background="{StaticResource AlkSurfaceBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Padding="10" CornerRadius="0"
+                    Visibility="{x:Bind Diagnostics.BugReportQualityText, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}">
+                <TextBlock Text="{x:Bind Diagnostics.BugReportQualityText, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           Foreground="{StaticResource AlkSoftChampagneBrush}"
+                           loc:Loc.Tooltip="BugReport.QualityText.Tooltip" />
+            </Border>
+
+            <StackPanel Spacing="10" Visibility="{x:Bind Diagnostics.BugReportReady, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{x:Bind Diagnostics.BugReportTitle, Mode=OneWay}" Style="{StaticResource SubHeadingText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True"
+                           loc:Loc.Tooltip="BugReport.TitleText.Tooltip" />
+
+                <!-- Five controls that cannot shrink, on a panel whose own scrolling is vertical, so below
+                     about 850 px of width the last of them sat past the right edge where no bar reached it.
+                     The row scrolls sideways inside its own container now. The two share no axis, so there
+                     is still one bar per direction. -->
+                <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button loc:Loc.Content="BugReport.CopyMarkdownButton" Command="{x:Bind Diagnostics.CopyBugReportMarkdownCommand}" Style="{StaticResource Action}" MinWidth="170"
+                                loc:Loc.Tooltip="BugReport.CopyMarkdownButton.Tooltip" />
+                        <Button loc:Loc.Content="BugReport.CopyBBCodeButton" Command="{x:Bind Diagnostics.CopyBugReportBBCodeCommand}" Style="{StaticResource Action}" MinWidth="160"
+                                loc:Loc.Tooltip="BugReport.CopyBBCodeButton.Tooltip" />
+                        <Button loc:Loc.Content="BugReport.CopyTitleButton" Command="{x:Bind Diagnostics.CopyBugReportTitleCommand}" Style="{StaticResource Action}" MinWidth="130"
+                                loc:Loc.Tooltip="BugReport.CopyTitleButton.Tooltip" />
+                        <Button loc:Loc.Content="BugReport.SaveButton" Command="{x:Bind Diagnostics.SaveBugReportCommand}" Style="{StaticResource Action}" MinWidth="150"
+                                loc:Loc.Tooltip="BugReport.SaveButton.Tooltip" />
+                        <CheckBox loc:Loc.Content="BugReport.ShowBBCodeCheckBox" IsChecked="{x:Bind Diagnostics.BugReportShowsBBCode, Mode=TwoWay}" Style="{StaticResource AlkCheckBox}"
+                                  loc:Loc.Tooltip="BugReport.ShowBBCodeCheckBox.Tooltip" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- The whole report, selectable, before any of it leaves BEM. -->
+                <Border Background="{StaticResource AlkSurfaceBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Padding="10" CornerRadius="0">
+                    <ScrollViewer MaxHeight="420" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Auto">
+                        <TextBlock Text="{x:Bind Diagnostics.BugReportPreview, Mode=OneWay}" Style="{StaticResource BodyText}"
+                                   FontFamily="Consolas" TextWrapping="NoWrap" IsTextSelectionEnabled="True"
+                                   loc:Loc.Tooltip="BugReport.PreviewText.Tooltip" />
+                    </ScrollViewer>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </Expander>
+</UserControl>

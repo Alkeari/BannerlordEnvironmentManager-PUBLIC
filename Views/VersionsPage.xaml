@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.VersionsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="TextToVisibility" />
+        <converters:ReferencedToLabelConverter x:Key="ReferencedToLabel" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!-- BodyText is selectable, and a selectable TextBlock takes the pointer for text selection:
+             over one of these columns the cursor became an I-beam and the click never reached the row
+             underneath, so no instance in this list could be selected at all. Rows in a list that
+             selects opt out; the paths and figures outside the list stay selectable. -->
+        <Style x:Key="InstanceColumn" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsTextSelectionEnabled" Value="False" />
+        </Style>
+
+        <!-- Counts read against each other down the column, so they take the face with tabular
+             figures and hang off the right edge: every digit then lines up with the digit above it. -->
+        <Style x:Key="InstanceNumberColumn" TargetType="TextBlock" BasedOn="{StaticResource MonoText}">
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsTextSelectionEnabled" Value="False" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="TextAlignment" Value="Right" />
+        </Style>
+
+        <Style x:Key="InstanceNumberHeader" TargetType="TextBlock" BasedOn="{StaticResource LabelText}">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="TextAlignment" Value="Right" />
+        </Style>
+    </Page.Resources>
+
+    <!-- Every section stacks Auto except the instance list, which grows; the outer ScrollViewer
+         only ever scrolls vertically, so wide rows (paths, build ids) trim inside their own column
+         rather than pushing the page sideways. -->
+    <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+        <Grid Padding="20,14,20,16">
+            <Grid RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <controls:PageHeader TitleKey="Versions.Title" BlurbKey="Versions.Blurb" />
+
+                <!-- 1. Games root -->
+                <StackPanel Grid.Row="1" Spacing="4">
+                    <TextBlock loc:Loc.Text="Versions.GamesRootLabel" Style="{StaticResource LabelText}" />
+                    <!-- The page scroller only ever moves vertically, and neither of these rows shrinks: the path
+                         is held to 640 px before it trims and the buttons state their own widths, so a narrow
+                         window put Browse and Stop past the right edge where nothing could reach them. Each row
+                         scrolls sideways inside its own container instead. The bars share no axis with the page,
+                         so there is still one per direction. -->
+                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{x:Bind ViewModel.GamesRoot, Mode=OneWay}" Style="{StaticResource MonoText}"
+                                       MaxWidth="640" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True"
+                                       loc:Loc.Tooltip="Versions.GamesRootPath.Tooltip" />
+                            <Button loc:Loc.Content="Versions.BrowseGamesRootButton" Command="{x:Bind ViewModel.BrowseGamesRootCommand}" Style="{StaticResource Action}" MinWidth="100"
+                                    loc:Loc.Tooltip="Versions.BrowseGamesRootButton.Tooltip" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- 2. Instance list -->
+                <StackPanel Grid.Row="2" Spacing="8">
+                    <TextBlock loc:Loc.Text="Versions.InstancesLabel" Style="{StaticResource LabelText}" />
+                    <Border Background="{StaticResource AlkSurfaceBrush}" BorderBrush="{StaticResource AlkHairlineBrush}"
+                            BorderThickness="1" CornerRadius="0" Padding="10">
+                        <StackPanel Spacing="4">
+                            <!-- Mirrors the item template's own Grid (same ColumnDefinitions, ColumnSpacing
+                                 and Padding) so the labels line up over the columns they name; the two
+                                 must be kept in sync by hand, since a header this app does not own is not
+                                 something WinUI's ListView can be pointed at a column definition set for. -->
+                            <Grid ColumnSpacing="16" Padding="4">
+                                <Grid.ColumnDefinitions>
+                                    <!-- Fixed, not Auto: every row owns its Grid, so an Auto status column
+                                         is nought wide on a row with no pill and wider on a row with one,
+                                         which moved every column after it by a different amount per row.
+                                         136 holds both pills side by side. -->
+                                    <ColumnDefinition Width="136" />
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" loc:Loc.Text="Versions.StatusColumn" Style="{StaticResource LabelText}" />
+                                <TextBlock Grid.Column="1" loc:Loc.Text="Versions.VersionColumn" Style="{StaticResource LabelText}" />
+                                <TextBlock Grid.Column="2" loc:Loc.Text="Versions.BranchColumn" Style="{StaticResource LabelText}" />
+                                <TextBlock Grid.Column="3" loc:Loc.Text="Versions.BuildIdColumn" Style="{StaticResource InstanceNumberHeader}" />
+                                <TextBlock Grid.Column="4" loc:Loc.Text="Versions.DlcColumn" Style="{StaticResource LabelText}" />
+                                <TextBlock Grid.Column="5" loc:Loc.Text="Versions.ReferencedColumn" Style="{StaticResource LabelText}" />
+                                <TextBlock Grid.Column="6" loc:Loc.Text="Versions.SizeOnDiskColumn" Style="{StaticResource InstanceNumberHeader}" />
+                            </Grid>
+                            <ListView ItemsSource="{x:Bind ViewModel.Instances, Mode=OneWay}"
+                                      SelectedItem="{x:Bind ViewModel.SelectedInstance, Mode=TwoWay}"
+                                      SelectionMode="Single"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      MaxHeight="360"
+                                      ContextRequested="OnInstanceContextRequested"
+                                      loc:Loc.Tooltip="Versions.InstanceList.Tooltip">
+                                <!-- Everything that can be done to one version, and the only route to
+                                     any of it: the buttons that used to repeat Set as Resting and
+                                     Remove are gone, so there is one place a version is acted on
+                                     rather than two that can disagree. Nothing here downloads or
+                                     launches: a download belongs to this page's own Download button
+                                     and a launch to Play, and repeating either would make two places
+                                     to fix the same bug. An item this row cannot use is disabled
+                                     carrying the reason in its tooltip, never hidden. -->
+                                <ListView.ContextFlyout>
+                                    <MenuFlyout x:Name="InstanceRowMenu" x:FieldModifier="internal">
+                                        <MenuFlyoutItem x:Name="RenameMenuItem" x:FieldModifier="internal"
+                                                        loc:Loc.Text="Versions.Menu.Rename"
+                                                        Command="{x:Bind ViewModel.RenameInstanceCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanRename, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.RenameTooltip, Mode=OneWay}" />
+                                        <!-- Purpose used to sit here. It is in the outer ring now
+                                             (DevRing\DeveloperSurfaces.cs), which puts it back into
+                                             this flyout below Rename: what a version is for is what
+                                             tells a mod's build tool a testing instance from one the
+                                             owner plays in, and a player has no build tool. Every
+                                             build still reads and labels the purpose an instance
+                                             already carries. -->
+                                        <MenuFlyoutItem loc:Loc.Text="Versions.Menu.OpenFolder"
+                                                        Command="{x:Bind ViewModel.OpenInstanceFolderCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanOpenFolder, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.OpenFolderTooltip, Mode=OneWay}" />
+                                        <MenuFlyoutItem loc:Loc.Text="Versions.Menu.CopyPath"
+                                                        Command="{x:Bind ViewModel.CopyInstancePathCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanCopyPath, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.CopyPathTooltip, Mode=OneWay}" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem loc:Loc.Text="Versions.Menu.SetActive"
+                                                        Command="{x:Bind ViewModel.SetActiveCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanSetActive, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.SetActiveTooltip, Mode=OneWay}" />
+                                        <MenuFlyoutItem loc:Loc.Text="Versions.SetRestingButton"
+                                                        Command="{x:Bind ViewModel.SetRestingCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanSetResting, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.SetRestingTooltip, Mode=OneWay}" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem loc:Loc.Text="Versions.Menu.InstallAnotherCopy"
+                                                        Command="{x:Bind ViewModel.InstallAnotherCopyCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanInstallAnotherCopy, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.InstallAnotherCopyTooltip, Mode=OneWay}" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem loc:Loc.Text="Versions.Menu.ShowDetails"
+                                                        Command="{x:Bind ViewModel.ShowInstanceDetailsCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanShowDetails, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.ShowDetailsTooltip, Mode=OneWay}" />
+                                        <MenuFlyoutItem loc:Loc.Text="Versions.RemoveButton"
+                                                        Command="{x:Bind ViewModel.RemoveInstanceCommand}"
+                                                        IsEnabled="{x:Bind ViewModel.Menu.CanRemove, Mode=OneWay}"
+                                                        ToolTipService.ToolTip="{x:Bind ViewModel.Menu.RemoveTooltip, Mode=OneWay}" />
+                                    </MenuFlyout>
+                                </ListView.ContextFlyout>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:InstanceRowViewModel">
+                                        <!-- The row records itself as the menu's target before the flyout opens. This
+                                             handler is the half that cannot be skipped: ContextRequested bubbles, the
+                                             list-level one runs only if nothing in between marked the event handled,
+                                             and the framework shows the flyout either way, which is how a right-click
+                                             on one row came to act on whichever row was selected last. Transparent so
+                                             the grid itself is hit-testable: without it a click in a column gap
+                                             reaches the item container instead and this handler never runs. The
+                                             InstanceColumn and InstanceNumberColumn styles turn text selection off
+                                             for the same gesture's sake, since a selectable TextBlock takes the
+                                             pointer and the right-click never reaches the row at all. -->
+                                        <Grid ColumnSpacing="16" Padding="4" ToolTipService.ToolTip="{x:Bind StatusTooltip}"
+                                              Background="Transparent"
+                                              ContextRequested="OnInstanceRowContextRequested">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="136" />
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <controls:Pill TextKey="Versions.RestingPill" Kind="Clear"
+                                                               Visibility="{x:Bind IsResting, Converter={StaticResource BoolToVisibility}}"
+                                                               loc:Loc.Tooltip="Versions.RestingPill.Tooltip" />
+                                                <controls:Pill TextKey="Versions.ActivePill" Kind="Action"
+                                                               Visibility="{x:Bind IsActive, Converter={StaticResource BoolToVisibility}}"
+                                                               loc:Loc.Tooltip="Versions.ActivePill.Tooltip" />
+                                            </StackPanel>
+                                            <!-- The name first, then what the version and its DLC actually
+                                                 are underneath it whenever a name was chosen, so a name
+                                                 the user typed can never stand in for a fact. With no
+                                                 chosen name the first line already is that fact. -->
+                                            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind RowLabel}" Style="{StaticResource InstanceColumn}" />
+                                                <TextBlock Text="{x:Bind VersionText}" Style="{StaticResource MetaText}"
+                                                           TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="False"
+                                                           Visibility="{x:Bind HasChosenName, Converter={StaticResource BoolToVisibility}}"
+                                                           loc:Loc.Tooltip="Versions.VersionColumn.DerivedTooltip" />
+                                                <TextBlock Text="{x:Bind VersionDriftText}" Style="{StaticResource InstanceColumn}"
+                                                           Visibility="{x:Bind HasVersionDrift, Converter={StaticResource BoolToVisibility}}"
+                                                           loc:Loc.Tooltip="Versions.VersionColumn.DriftTooltip" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{x:Bind BranchText}" Style="{StaticResource InstanceColumn}" />
+                                            <TextBlock Grid.Column="3" Text="{x:Bind BuildIdText}" Style="{StaticResource InstanceNumberColumn}" />
+                                            <TextBlock Grid.Column="4" Text="{x:Bind DlcLabel}" Style="{StaticResource InstanceColumn}"
+                                                       loc:Loc.Tooltip="Versions.DlcColumn.Tooltip" />
+                                            <TextBlock Grid.Column="5"
+                                                       Text="{x:Bind Record.GameFolderIsReferenced, Converter={StaticResource ReferencedToLabel}}"
+                                                       Style="{StaticResource InstanceColumn}"
+                                                       loc:Loc.Tooltip="Versions.ReferencedColumn.Tooltip" />
+                                            <TextBlock Grid.Column="6" Text="{x:Bind SizeOnDiskText}" Style="{StaticResource InstanceNumberColumn}"
+                                                       loc:Loc.Tooltip="Versions.SizeOnDiskColumn.Tooltip" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- 3. Actions -->
+                <StackPanel Grid.Row="3" Spacing="8">
+                    <TextBlock loc:Loc.Text="Versions.ActionsLabel" Style="{StaticResource LabelText}" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button loc:Loc.Content="Versions.AdoptButton" Command="{x:Bind ViewModel.AdoptCurrentInstallCommand}"
+                                Style="{StaticResource PrimaryAction}" MinWidth="180"
+                                loc:Loc.Tooltip="Versions.AdoptButton.Tooltip" />
+                        <!-- One button per DLC the selected instance does not have yet. Empty, and
+                             collapsed, once nothing is missing or nothing is selected. -->
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedInstanceMissingDlc, Mode=OneWay}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="12" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MissingDlcRowViewModel">
+                                    <Button Content="{x:Bind AddLabel}" Command="{x:Bind AddCommand}" CommandParameter="{x:Bind Dlc}"
+                                            Style="{StaticResource Action}" MinWidth="120"
+                                            ToolTipService.ToolTip="{x:Bind AddTooltip}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" Width="28" Height="28" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 4. Download a version. This page is where a version that is not on the machine
+                     is fetched, and the Download button is the only thing anywhere in BEM that
+                     starts a base game download: picking a version in the list below chooses what
+                     the button would fetch and downloads nothing by itself. Play's own dropdown
+                     lists only what is already here. -->
+                <StackPanel Grid.Row="4" Spacing="8">
+                    <TextBlock loc:Loc.Text="Versions.DownloadLabel" Style="{StaticResource LabelText}" />
+                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <ComboBox ItemsSource="{x:Bind ViewModel.DownloadableVersions, Mode=OneWay}"
+                                      SelectedItem="{x:Bind ViewModel.SelectedDownload, Mode=TwoWay}"
+                                      IsEnabled="{x:Bind ViewModel.VersionSwitcher.IsIdle, Mode=OneWay}"
+                                      MinWidth="280" VerticalAlignment="Center"
+                                      loc:Loc.Tooltip="Versions.DownloadComboBox.Tooltip">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:GameVersionRowViewModel">
+                                        <Grid ColumnSpacing="12" ToolTipService.ToolTip="{x:Bind Tooltip}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind DisplayLabel}" Style="{StaticResource BodyText}" IsTextSelectionEnabled="False"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind StateText}" Style="{StaticResource MetaText}"
+                                                       HorizontalAlignment="Right" IsTextSelectionEnabled="False" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Button loc:Loc.Content="Versions.DownloadButton" Command="{x:Bind ViewModel.DownloadVersionCommand}"
+                                    Style="{StaticResource Action}" MinWidth="130"
+                                    loc:Loc.Tooltip="Versions.DownloadButton.Tooltip" />
+                            <!-- Beside the button that starts one, because it is the same gesture
+                                 reversed, and it covers an Add DLC download too: that reports into this
+                                 same box and is run by the same view model. Off until something is
+                                 actually downloading, the way every other button on this page is off
+                                 until it has something to act on. -->
+                            <Button loc:Loc.Content="Versions.StopDownloadButton" Command="{x:Bind ViewModel.VersionSwitcher.StopDownloadCommand}"
+                                    Style="{StaticResource Action}" MinWidth="130"
+                                    loc:Loc.Tooltip="Versions.StopDownloadButton.Tooltip" />
+                        </StackPanel>
+                    </ScrollViewer>
+                    <!-- The same fixed box Play shows this download in, and for the same reason: the
+                         status line rewrites itself several times a second and each message is a
+                         different length, so a label that re-measured moved every row under it. -->
+                    <!-- Fixed at 56 px while a download runs, for the reason Play's box is: the
+                         status line rewrites itself several times a second and every length change
+                         moved the rows under it. Once the run is over the box is the one place its
+                         result is reported, so it grows to hold the whole sentence rather than
+                         eliding the half that says what to do about it. -->
+                    <Grid Width="520" Height="{x:Bind StatusBoxHeight(ViewModel.VersionSwitcher.IsProgressVisible), Mode=OneWay}"
+                          HorizontalAlignment="Left" RowSpacing="6"
+                          Visibility="{x:Bind DownloadStatusVisibility(ViewModel.VersionSwitcher.IsProgressVisible, ViewModel.VersionSwitcher.StatusMessage), Mode=OneWay}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" MinHeight="36" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{x:Bind ViewModel.VersionSwitcher.StatusMessage, Mode=OneWay}"
+                                   Style="{StaticResource MetaText}" TextWrapping="Wrap"
+                                   MaxLines="{x:Bind StatusBoxLines(ViewModel.VersionSwitcher.IsProgressVisible), Mode=OneWay}"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Top"
+                                   IsTextSelectionEnabled="True"
+                                   ToolTipService.ToolTip="{x:Bind ViewModel.VersionSwitcher.StatusMessage, Mode=OneWay}" />
+                        <ProgressBar Grid.Row="1" Value="{x:Bind ViewModel.VersionSwitcher.ProgressValue, Mode=OneWay}"
+                                     Minimum="0" Maximum="100" VerticalAlignment="Center"
+                                     Visibility="{x:Bind ViewModel.VersionSwitcher.IsProgressVisible, Mode=OneWay}"
+                                     loc:Loc.Tooltip="Versions.DownloadProgressBar.Tooltip" />
+                    </Grid>
+                    <!-- Outside the fixed box: the QR appears once when Steam asks for a sign-in and
+                         stays until it is scanned, so it does not churn, and reserving 288 px for it
+                         on every download would cost more than the one shift it causes. It lives on
+                         this page because sign-in exists to complete a download, and this is the only
+                         page a download can be started from.
+                         White, padded and opaque on purpose: a QR code is read by contrast, so the
+                         palette's dark surface behind it is a code that does not scan. -->
+                    <Border Background="{StaticResource AlkQrQuietZoneBrush}" Padding="12" HorizontalAlignment="Left"
+                            Visibility="{x:Bind ViewModel.VersionSwitcher.QrImage, Mode=OneWay, Converter={StaticResource TextToVisibility}}"
+                            loc:Loc.Tooltip="Versions.SteamQrCode.Tooltip">
+                        <Image Source="{x:Bind ViewModel.VersionSwitcher.QrImage, Mode=OneWay}"
+                               Width="264" Height="264" />
+                    </Border>
+                </StackPanel>
+
+                <!-- 5. Unfinished downloads. A download that stopped short leaves a folder full of
+                     bytes and no version, and until this row existed there was nothing anywhere in
+                     BEM that mentioned it: the way out was Explorer. Resume asks for the same
+                     confirmation a first download does, because it is one starting. -->
+                <StackPanel Grid.Row="5" Spacing="8"
+                            Visibility="{x:Bind ViewModel.HasUnfinishedDownloads, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock loc:Loc.Text="Versions.UnfinishedLabel" Style="{StaticResource LabelText}" />
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.UnfinishedDownloads, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:UnfinishedDownloadRowViewModel">
+                                <Grid ColumnSpacing="12" Padding="0,2" ToolTipService.ToolTip="{x:Bind Tooltip}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                               VerticalAlignment="Center" IsTextSelectionEnabled="True" />
+                                    <Button Grid.Column="1" loc:Loc.Content="Versions.Unfinished.ResumeButton"
+                                            Command="{x:Bind ResumeCommand}" CommandParameter="{x:Bind}"
+                                            IsEnabled="{x:Bind CanResume}"
+                                            Style="{StaticResource Action}" MinWidth="150"
+                                            ToolTipService.ToolTip="{x:Bind ResumeTooltip}" />
+                                    <Button Grid.Column="2" loc:Loc.Content="Versions.Unfinished.DiscardButton"
+                                            Command="{x:Bind DiscardCommand}" CommandParameter="{x:Bind}"
+                                            Style="{StaticResource DangerAction}" MinWidth="110"
+                                            ToolTipService.ToolTip="{x:Bind DiscardTooltip}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- 6. Status -->
+                <StackPanel Grid.Row="6" Spacing="8">
+                    <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource MetaText}" TextWrapping="Wrap"
+                               IsTextSelectionEnabled="True"
+                               Visibility="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                </StackPanel>
+
+                <!-- 7. Uninstall report -->
+                <StackPanel Grid.Row="7" Spacing="8">
+                    <TextBlock loc:Loc.Text="Versions.UninstallLabel" Style="{StaticResource LabelText}" />
+                    <Button loc:Loc.Content="Versions.BuildUninstallReportButton" Command="{x:Bind ViewModel.PrepareForUninstallCommand}"
+                            Style="{StaticResource Action}" MinWidth="200" HorizontalAlignment="Left"
+                            loc:Loc.Tooltip="Versions.BuildUninstallReportButton.Tooltip" />
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.UninstallLines, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{x:Bind}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                           IsTextSelectionEnabled="True" Margin="0,2,0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</Page>

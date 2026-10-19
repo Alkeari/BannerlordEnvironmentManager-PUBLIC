@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BannerlordEnvironmentManager.Core</RootNamespace>
+    <AssemblyName>BannerlordEnvironmentManager.Core</AssemblyName>
+  </PropertyGroup>
+  <!-- The outer ring, restated here because Core carries gated code of its own. The switch reaches
+       this project through the app's project reference, which passes its global properties down; a
+       test run or a plain build of Core alone leaves it off. The assignment is unconditional so an
+       environment variable named DevBem cannot turn it on: only -p:DevBem=true outranks it. -->
+  <PropertyGroup>
+    <DevBem>false</DevBem>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DevBem)'=='true'">
+    <DefineConstants>$(DefineConstants);DEV_BEM</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ICSharpCode.Decompiler" />
+    <PackageReference Include="Microsoft.Diagnostics.Runtime" />
+    <PackageReference Include="System.Diagnostics.EventLog" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\Catalogs\*.json" />
+  </ItemGroup>
+</Project>
