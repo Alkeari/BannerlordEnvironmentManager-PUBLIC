@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.CrashAnalysisPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization">
+
+    <Page.Resources>
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibility" />
+    </Page.Resources>
+
+    <!-- The Better Exception Window view: the exception, the stack with each Harmony patch frame named by
+         its mod, and the modules the crash went through. It also opens for a crash known only from the
+         engine's error log, which has no stack. -->
+    <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Padding="20,4,20,16">
+        <StackPanel Spacing="8">
+            <TextBlock Text="{x:Bind ViewModel.Headline, Mode=OneWay}" Style="{StaticResource CardTitleText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+            <TextBlock Text="{x:Bind ViewModel.Message, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+            <TextBlock Text="{x:Bind ViewModel.Notice, Mode=OneWay}" Style="{StaticResource LabelText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+            <TextBlock loc:Loc.Text="CrashView.Section.Modules" Style="{StaticResource CardTitleText}" Margin="0,8,0,0" />
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Modules}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{x:Bind}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock loc:Loc.Text="CrashView.Section.Stack" Style="{StaticResource CardTitleText}" Margin="0,8,0,0" />
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Frames}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{x:Bind}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,8,0,0">
+                <Button loc:Loc.Content="CrashView.Refresh" loc:Loc.Tooltip="CrashView.Refresh.Tooltip" Command="{x:Bind ViewModel.RefreshCommand}" Style="{StaticResource Action}" />
+                <!-- Asks first: the click builds the report and a dialog shows exactly what would be published. -->
+                <Button loc:Loc.Content="CrashView.Share.Button" loc:Loc.Tooltip="CrashView.Share.Button.Tooltip" Click="OnShareClick" Style="{StaticResource Action}"
+                        IsEnabled="{x:Bind ViewModel.ShareIdle, Mode=OneWay}" />
+                <ProgressRing IsActive="{x:Bind ViewModel.ShareBusy, Mode=OneWay}" Width="20" Height="20" />
+            </StackPanel>
+
+            <TextBlock Text="{x:Bind ViewModel.ShareStatus, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                       Visibility="{x:Bind ViewModel.ShareStatus, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+
+            <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.ShareLink, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}">
+                <TextBlock loc:Loc.Text="CrashView.Share.LinkLabel" Style="{StaticResource CardTitleText}" />
+                <TextBlock Text="{x:Bind ViewModel.ShareLink, Mode=OneWay}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button loc:Loc.Content="CrashView.Share.Copy" loc:Loc.Tooltip="CrashView.Share.Copy.Tooltip" Command="{x:Bind ViewModel.CopyShareLinkCommand}" Style="{StaticResource PrimaryAction}" />
+                    <Button loc:Loc.Content="CrashView.Share.Open" loc:Loc.Tooltip="CrashView.Share.Open.Tooltip" Command="{x:Bind ViewModel.OpenShareLinkCommand}" Style="{StaticResource Action}" />
+                    <Button loc:Loc.Content="CrashView.Share.CopyDelete" loc:Loc.Tooltip="CrashView.Share.CopyDelete.Tooltip" Command="{x:Bind ViewModel.CopyDeleteLinkCommand}" Style="{StaticResource Action}"
+                            Visibility="{x:Bind ViewModel.DeleteLink, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+                </StackPanel>
+                <TextBlock Text="{x:Bind ViewModel.DeleteNote, Mode=OneWay}" Style="{StaticResource LabelText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           Visibility="{x:Bind ViewModel.DeleteNote, Mode=OneWay, Converter={StaticResource NullOrEmptyToVisibility}}" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

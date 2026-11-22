@@ -1,0 +1,15 @@
+<Project>
+  <!-- The source folder is kept out of every shipped assembly, so any checkout builds the same bytes. The
+       test project is left out: its source scans find the repository through CallerFilePath. -->
+  <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <PathMap>$(MSBuildProjectDirectory)=/_/</PathMap>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- SourceLink would write the checkout path and the private repository URL into every pdb. -->
+    <EnableSourceLink>false</EnableSourceLink>
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+    <!-- CsWinRT's AOT optimizer and CCW lookup generators pick a different set of types on every compile, so two builds of one commit differ. They only serve trimmed or AOT builds, and this app ships neither. -->
+    <CsWinRTAotOptimizerEnabled>false</CsWinRTAotOptimizerEnabled>
+    <CsWinRTCcwLookupTableGeneratorEnabled>false</CsWinRTCcwLookupTableGeneratorEnabled>
+  </PropertyGroup>
+</Project>

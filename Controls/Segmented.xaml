@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Controls.Segmented"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    mc:Ignorable="d">
+
+    <!-- The chip brushes are set from code (Segmented.ApplyMode), scoped to this control, because the
+         chips and the vertical list want different checked looks. -->
+    <!-- Chips wrap onto a second row in a narrow window, so every label reads whole; the list mode
+         stacks its items and scrolls vertically. Only the panel for the current mode is shown. -->
+    <ScrollViewer x:Name="Scroller" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+        <Grid>
+            <controls:WrapPanel x:Name="ChipWrap" Spacing="8" />
+            <StackPanel x:Name="ListPanel" Visibility="Collapsed" />
+        </Grid>
+    </ScrollViewer>
+</UserControl>

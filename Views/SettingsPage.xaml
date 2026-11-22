@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:BannerlordEnvironmentManager"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:views="using:BannerlordEnvironmentManager.Views"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToOpacityConverter x:Key="BoolToOpacity" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="TextToVisibility" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibility" />
+    </Page.Resources>
+
+    <!-- Settings (redesign step 3, mockup-settings.html): a group list on the left and one group's card
+         on the right, so the page never scrolls; the card does. A setting is its label and its control,
+         and what it does is the label's tooltip. Below the compact width the list becomes a chip row
+         above the card. -->
+    <Grid x:Name="PageRoot" Padding="8" RowSpacing="8" SizeChanged="OnPageSizeChanged">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="GroupColumn" Width="180" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <controls:PageHeader Grid.ColumnSpan="2" TitleKey="Settings.Title" BlurbKey="Settings.Blurb" x:Name="Header" />
+
+        <controls:Segmented x:Name="Groups" Grid.Row="2" Mode="List" Margin="0,0,24,0"
+                            SelectionChanged="OnGroupChanged" />
+        <controls:PanelSplitter x:Name="GroupSplitter" Grid.Row="2" Grid.Column="0" SectionKey="SettingsGroupWidth"
+                                SizesLeftColumn="True" MinimumColumnWidth="140" />
+
+        <Grid x:Name="CardHost" Grid.Row="2" Grid.Column="1">
+
+            <!-- Folders, and how archives are installed from them. -->
+            <controls:CardShell x:Name="FoldersCard" TitleKey="Settings.FoldersSection">
+                <StackPanel>
+                    <controls:SettingRow LabelKey="Settings.GameInstallFolder" TooltipKey="Settings.GameInstallFolder.Tooltip">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox Text="{x:Bind ViewModel.GameInstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="360"
+                                     loc:Loc.Placeholder="Settings.GameInstallFolder.Placeholder"
+                                     loc:Loc.Tooltip="Settings.GameInstallFolder.Tooltip" />
+                            <Button loc:Loc.Content="Settings.BrowseGameInstallFolderButton" Command="{x:Bind ViewModel.BrowseInstallFolderCommand}"
+                                    Style="{StaticResource RowAction}"
+                                    loc:Loc.Tooltip="Settings.BrowseGameInstallFolderButton.Tooltip" />
+                        </StackPanel>
+                    </controls:SettingRow>
+                    <controls:SettingRow LabelKey="Settings.ArchivesFolder" TooltipKey="Settings.ArchivesFolder.Tooltip">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox Text="{x:Bind ViewModel.ArchivesFolderPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="360"
+                                     loc:Loc.Placeholder="Settings.ArchivesFolder.Placeholder"
+                                     loc:Loc.Tooltip="Settings.ArchivesFolder.Tooltip" />
+                            <Button loc:Loc.Content="Settings.BrowseArchivesFolderButton" Command="{x:Bind ViewModel.BrowseArchivesFolderCommand}"
+                                    Style="{StaticResource RowAction}"
+                                    loc:Loc.Tooltip="Settings.BrowseArchivesFolderButton.Tooltip" />
+                            <Button loc:Loc.Content="Settings.OpenArchivesFolderButton" Command="{x:Bind ViewModel.OpenArchivesFolderCommand}"
+                                    Style="{StaticResource RowAction}"
+                                    loc:Loc.Tooltip="Settings.OpenArchivesFolderButton.Tooltip" />
+                        </StackPanel>
+                    </controls:SettingRow>
+
+                    <TextBlock loc:Loc.Text="Settings.Group.Installing" Style="{StaticResource CardGroupText}"
+                               loc:Loc.Tooltip="Settings.FoldersSection.Blurb"
+                               Visibility="{x:Bind views:PageDensity.Advanced(NavigationSettings.IsAdvancedMode), Mode=OneWay}" />
+                    <StackPanel Visibility="{x:Bind views:PageDensity.Advanced(NavigationSettings.IsAdvancedMode), Mode=OneWay}">
+                        <controls:SettingRow LabelKey="Settings.ReplaceModuleFoldersCheckBox" TooltipKey="Settings.ReplaceModuleFoldersNote">
+                            <controls:SettingToggle IsChecked="{x:Bind ViewModel.ReplaceExistingModuleFolders, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.ReplaceModuleFoldersCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.DeleteArchivesCheckBox" TooltipKey="Settings.DeleteArchivesCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind ViewModel.DeleteArchivesAfterInstall, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.DeleteArchivesCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.MoveKeptArchivesCheckBox" TooltipKey="Settings.MoveKeptArchivesCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind ViewModel.MoveKeptArchivesToInstalled, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.MoveKeptArchivesCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.SearchArchivesRecursivelyCheckBox" TooltipKey="Settings.SearchArchivesRecursivelyCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind ViewModel.SearchArchivesRecursively, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.SearchArchivesRecursivelyCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.InstallSelectedOnlyCheckBox" TooltipKey="Settings.InstallSelectedOnlyCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind ViewModel.InstallSelectedOnly, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.InstallSelectedOnlyCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.InstallSevenZipOnDemandCheckBox"
+                                             Tooltip="{x:Bind SettingsViewModel.SevenZipInstallCommandText}">
+                            <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.InstallSevenZipOnDemand, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.InstallSevenZipOnDemandCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                    </StackPanel>
+                </StackPanel>
+            </controls:CardShell>
+
+            <!-- How the game starts. -->
+            <controls:CardShell x:Name="LaunchCard" TitleKey="Settings.LaunchSection" Visibility="Collapsed">
+                <StackPanel>
+                    <StackPanel>
+                        <controls:SettingRow LabelKey="Settings.LaunchTarget" TooltipKey="Settings.LaunchTargetCombo.Tooltip">
+                            <ComboBox ItemsSource="{x:Bind EnvironmentViewModel.AvailableTargets}"
+                                      SelectedItem="{x:Bind EnvironmentViewModel.SelectedTarget, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayName" MinWidth="240"
+                                      loc:Loc.Tooltip="Settings.LaunchTargetCombo.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.ExtraLaunchArguments" TooltipKey="Settings.ExtraLaunchArguments.Tooltip"
+                                             Visibility="{x:Bind views:PageDensity.Advanced(NavigationSettings.IsAdvancedMode), Mode=OneWay}">
+                            <TextBox Text="{x:Bind EnvironmentViewModel.ExtraArguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     loc:Loc.Placeholder="Settings.ExtraLaunchArguments.Placeholder" Width="300"
+                                     loc:Loc.Tooltip="Settings.ExtraLaunchArguments.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.CheatModeCheckBox" TooltipKey="Settings.CheatModeCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.CheatMode, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.CheatModeCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.WorkshopKeepCheckBox" TooltipKey="Settings.WorkshopKeepCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.WorkshopKeepEnabled, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.WorkshopKeepCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.KeepWatchingCheckBox" TooltipKey="Settings.KeepWatchingCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.KeepWatchingEnabled, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.KeepWatchingCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.MinimizeOnLaunchCheckBox" TooltipKey="Settings.MinimizeOnLaunchCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.MinimizeOnLaunch, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.MinimizeOnLaunchCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.PreferInstalledButrStackCheckBox" TooltipKey="Settings.PreferInstalledButrStackCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.PreferInstalledButrStack, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.PreferInstalledButrStackCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.ShareGameSettingsCheckBox" TooltipKey="Settings.SharedGameSettingsSection.Blurb">
+                            <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.ShareGameSettings, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.ShareGameSettingsCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.ExceptionManagerCheckBox" TooltipKey="Settings.ExceptionManagerCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.ExceptionManagerEnabled, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.ExceptionManagerCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                        <controls:SettingRow LabelKey="Settings.KeepPhysicsFrameRateCheckBox" TooltipKey="Settings.KeepPhysicsFrameRateCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.KeepPhysicsFrameRate, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.KeepPhysicsFrameRateCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind SettingsViewModel.SharedGameSettingsStatusMessage, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                               Visibility="{x:Bind SettingsViewModel.SharedGameSettingsStatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{x:Bind SettingsViewModel.ExceptionManagerStatusMessage, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                               Visibility="{x:Bind SettingsViewModel.ExceptionManagerStatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{x:Bind SettingsViewModel.PhysicsFrameRateStatusMessage, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                               Visibility="{x:Bind SettingsViewModel.PhysicsFrameRateStatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                    <!-- BLSE's crash handler: Advanced, and dimmed with the reason on hover when the
+                         chosen target is not BLSE. The developer build appends a third switch here. -->
+                    <StackPanel Visibility="{x:Bind views:PageDensity.Advanced(NavigationSettings.IsAdvancedMode), Mode=OneWay}">
+                        <TextBlock loc:Loc.Text="Settings.CrashHandlingSection" Style="{StaticResource CardGroupText}"
+                                   loc:Loc.Tooltip="Settings.CrashHandlingSection.LauncherExNote" />
+                        <StackPanel x:Name="CrashHandlerOptions" x:FieldModifier="internal"
+                                    Opacity="{x:Bind EnvironmentViewModel.CrashHandlingAppliesToTarget, Mode=OneWay, Converter={StaticResource BoolToOpacity}}"
+                                    ToolTipService.ToolTip="{x:Bind EnvironmentViewModel.CrashHandlingNote, Mode=OneWay}">
+                            <controls:SettingRow LabelKey="Settings.KeepVanillaCrashHandlerCheckBox" TooltipKey="Settings.KeepVanillaCrashHandlerCheckBox.Tooltip">
+                                <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.UseVanillaCrashHandler, Mode=TwoWay}"
+                                                        loc:Loc.Tooltip="Settings.KeepVanillaCrashHandlerCheckBox.Tooltip" />
+                            </controls:SettingRow>
+                            <controls:SettingRow LabelKey="Settings.DisableAutoGenExceptionsCheckBox" TooltipKey="Settings.DisableAutoGenExceptionsCheckBox.Tooltip">
+                                <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.DisableAutoGeneratedExceptionCatching, Mode=TwoWay}"
+                                                        loc:Loc.Tooltip="Settings.DisableAutoGenExceptionsCheckBox.Tooltip" />
+                            </controls:SettingRow>
+                        </StackPanel>
+                        <TextBlock TextWrapping="Wrap" Style="{StaticResource CardNoteText}"
+                                   Text="{x:Bind EnvironmentViewModel.CrashHandlingNote, Mode=OneWay}"
+                                   loc:Loc.Tooltip="Settings.CrashHandlingSection.DisabledOptionsNote" />
+                    </StackPanel>
+                </StackPanel>
+            </controls:CardShell>
+
+            <!-- How much BEM shows. -->
+            <controls:CardShell x:Name="DisplayCard" TitleKey="Settings.Group.Display" Visibility="Collapsed">
+                <StackPanel>
+                    <!-- Presentation, not capability: Basic hides the investigative and power-user
+                         surfaces, never a finding and never a feature that is doing work. -->
+                    <controls:SettingRow LabelKey="Settings.AdvancedModeCheckBox" TooltipKey="Settings.AdvancedModeCheckBox.Tooltip">
+                        <controls:SettingToggle IsChecked="{x:Bind NavigationSettings.IsAdvancedMode, Mode=OneWay}"
+                                                Click="OnAdvancedModeToggled"
+                                                loc:Loc.Tooltip="Settings.AdvancedModeCheckBox.Tooltip" />
+                    </controls:SettingRow>
+                    <controls:SettingRow LabelKey="Settings.Walkthrough" TooltipKey="Settings.Walkthrough.Tooltip">
+                        <Button loc:Loc.Content="Settings.Walkthrough.Button" Click="OnRunWalkthrough"
+                                loc:Loc.Tooltip="Settings.Walkthrough.Button.Tooltip" />
+                    </controls:SettingRow>
+                    <controls:SettingRow LabelKey="Settings.ModuleRowDensityCombo" TooltipKey="Settings.ModuleRowDensityCombo.Tooltip">
+                        <ComboBox x:Name="RowDensityCombo" MinWidth="200"
+                                  SelectionChanged="OnRowDensityChanged"
+                                  loc:Loc.Tooltip="Settings.ModuleRowDensityCombo.Tooltip">
+                            <ComboBoxItem x:Name="CompactDensityItem" Tag="Compact" />
+                            <ComboBoxItem x:Name="StandardDensityItem" Tag="Standard" />
+                            <ComboBoxItem x:Name="ComfortableDensityItem" Tag="Comfortable" />
+                        </ComboBox>
+                    </controls:SettingRow>
+                    <controls:SettingRow LabelKey="Settings.Language" TooltipKey="Settings.Language.Tooltip">
+                        <ComboBox x:Name="LanguageCombo" MinWidth="200"
+                                  DisplayMemberPath="NativeName"
+                                  SelectionChanged="OnLanguageChanged"
+                                  loc:Loc.Tooltip="Settings.Language.Tooltip" />
+                    </controls:SettingRow>
+                    <controls:SettingRow LabelKey="Settings.ResetLayout" TooltipKey="Settings.ResetLayout.Tooltip">
+                        <StackPanel Spacing="4">
+                            <Button loc:Loc.Content="Settings.ResetLayoutButton" Click="OnResetLayoutClicked"
+                                    loc:Loc.Tooltip="Settings.ResetLayout.Tooltip" />
+                            <TextBlock x:Name="ResetLayoutStatus" Style="{StaticResource CardNoteText}" TextWrapping="Wrap"
+                                       Visibility="Collapsed" />
+                        </StackPanel>
+                    </controls:SettingRow>
+                </StackPanel>
+            </controls:CardShell>
+
+            <!-- The load order rules a power user can change. Advanced only. -->
+            <controls:CardShell x:Name="LoadOrderCard" TitleKey="Settings.LoadOrderSection" Visibility="Collapsed">
+                <StackPanel>
+                    <controls:SettingRow LabelKey="Settings.PermitManualOverrideCheckBox"
+                                         Tooltip="{x:Bind EnvironmentViewModel.ManualOverrideNote, Mode=OneWay}">
+                        <controls:SettingToggle IsChecked="{x:Bind EnvironmentViewModel.PermitManualLoadOrderOverride, Mode=TwoWay}"
+                                                loc:Loc.Tooltip="Settings.PermitManualOverrideCheckBox.Tooltip" />
+                    </controls:SettingRow>
+                    <controls:SettingRow LabelKey="Settings.KeepDividersAnchoredCheckBox" TooltipKey="Settings.KeepDividersAnchoredCheckBox.Tooltip">
+                        <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.KeepDividersAnchoredOnAutoSort, Mode=TwoWay}"
+                                                loc:Loc.Tooltip="Settings.KeepDividersAnchoredCheckBox.Tooltip" />
+                    </controls:SettingRow>
+                </StackPanel>
+            </controls:CardShell>
+
+            <!-- Everything that talks to the internet: BEM's own update check, Nexus, nxm links and
+                 BUTR's community scores. Each is off until turned on where it costs or shares. -->
+            <controls:CardShell x:Name="NetworkCard" TitleKey="Settings.Group.Network" Visibility="Collapsed">
+                <StackPanel x:Name="NetworkBody">
+                    <TextBlock loc:Loc.Text="Settings.BemUpdateSection" Style="{StaticResource CardGroupText}" Margin="0,0,0,4"
+                               loc:Loc.Tooltip="Settings.BemUpdateSection.Blurb" />
+                    <StackPanel>
+                        <controls:SettingRow LabelKey="Settings.BemUpdateAtStartupCheckBox" TooltipKey="Settings.BemUpdateAtStartupCheckBox.Tooltip">
+                            <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.BemUpdateCheckAtStartup, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.BemUpdateAtStartupCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <Button loc:Loc.Content="Settings.CheckBemUpdateButton" Command="{x:Bind SettingsViewModel.CheckBemUpdateCommand}" Style="{StaticResource RowAction}"
+                                loc:Loc.Tooltip="Settings.CheckBemUpdateButton.Tooltip" />
+                        <Button loc:Loc.Content="Settings.OpenBemNexusPageButton" Command="{x:Bind SettingsViewModel.OpenBemPageCommand}" Style="{StaticResource QuietAction}"
+                                loc:Loc.Tooltip="Settings.OpenBemNexusPageButton.Tooltip" />
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind SettingsViewModel.BemUpdateStatus, Mode=OneWay}" Style="{StaticResource CardNoteText}" IsTextSelectionEnabled="True"
+                               Visibility="{x:Bind SettingsViewModel.BemUpdateStatus, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                    <!-- Steam: remembered after one sign-in until the user signs out here. -->
+                    <StackPanel>
+                        <controls:SettingRow LabelKey="Settings.SteamAccountLabel" TooltipKey="Settings.SteamAccountLabel.Blurb">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{x:Bind SettingsViewModel.SteamAccountStatus, Mode=OneWay}" Style="{StaticResource CardNoteText}" VerticalAlignment="Center" />
+                                <Button loc:Loc.Content="Settings.SignOutOfSteamButton" Command="{x:Bind SettingsViewModel.SignOutOfSteamCommand}" Style="{StaticResource DangerAction}"
+                                        loc:Loc.Tooltip="Settings.SignOutOfSteamButton.Tooltip"
+                                        Visibility="{x:Bind SettingsViewModel.IsSteamSignedIn, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </controls:SettingRow>
+                    </StackPanel>
+                    <TextBlock loc:Loc.Text="Settings.NexusUpdateCheckSection" Style="{StaticResource CardGroupText}"
+                               loc:Loc.Tooltip="Settings.NexusUpdateCheckSection.Blurb" />
+
+                    <StackPanel Spacing="4">
+                        <StackPanel>
+                            <controls:SettingRow LabelKey="Settings.NexusSignInLabel" TooltipKey="Settings.NexusSignInLabel.Blurb">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ProgressRing IsActive="{x:Bind SettingsViewModel.NexusSsoBusy, Mode=OneWay}" Width="20" Height="20" />
+                                    <Button loc:Loc.Content="Settings.CancelNexusSignInButton" Command="{x:Bind SettingsViewModel.CancelNexusSignInCommand}" Style="{StaticResource QuietAction}"
+                                            loc:Loc.Tooltip="Settings.CancelNexusSignInButton.Tooltip"
+                                            Visibility="{x:Bind SettingsViewModel.NexusSsoBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                    <Button loc:Loc.Content="Settings.SignInWithNexusButton" Command="{x:Bind SettingsViewModel.SignInWithNexusCommand}"
+                                            Style="{StaticResource RowAction}" loc:Loc.Tooltip="Settings.NexusSsoButton.Tooltip" />
+                                </StackPanel>
+                            </controls:SettingRow>
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind SettingsViewModel.NexusSsoMessage, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                                   Visibility="{x:Bind SettingsViewModel.NexusSsoMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                        <!-- The key: its state on the row, and the policy, check and remove behind it. -->
+                        <StackPanel x:Name="NexusKeySection">
+                            <controls:SettingRow LabelKey="Settings.NexusApiKeyLabel" TooltipKey="Settings.NexusApiKeyLabel.Blurb">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button loc:Loc.Content="Settings.NexusAcceptableUsePolicyButton"
+                                            Command="{x:Bind SettingsViewModel.OpenNexusAcceptableUsePolicyCommand}"
+                                            Style="{StaticResource QuietAction}"
+                                            loc:Loc.Tooltip="Settings.NexusAcceptableUsePolicyButton.Tooltip" />
+                                    <Button loc:Loc.Content="Settings.CheckNexusApiKeyButton" Command="{x:Bind SettingsViewModel.ValidateApiKeyCommand}" Style="{StaticResource RowAction}"
+                                            loc:Loc.Tooltip="Settings.CheckNexusApiKeyButton.Tooltip" />
+                                    <Button loc:Loc.Content="Settings.RemoveNexusApiKeyButton" Command="{x:Bind SettingsViewModel.RemoveApiKeyCommand}" Style="{StaticResource DangerAction}"
+                                            HorizontalAlignment="Left"
+                                            loc:Loc.Tooltip="Settings.RemoveNexusApiKeyButton.Tooltip"
+                                            Visibility="{x:Bind SettingsViewModel.HasNexusKey, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+                            </controls:SettingRow>
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind SettingsViewModel.NexusKeyStatus, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                                   Visibility="{x:Bind SettingsViewModel.NexusKeyStatus, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                        <StackPanel>
+                            <controls:SettingRow LabelKey="Settings.NexusPeriodLabel" TooltipKey="Settings.NexusPeriodCombo.Tooltip">
+                                <ComboBox SelectedIndex="{x:Bind SettingsViewModel.NexusPeriodIndex, Mode=TwoWay}" MinWidth="200"
+                                          loc:Loc.Tooltip="Settings.NexusPeriodCombo.Tooltip">
+                                    <ComboBoxItem loc:Loc.Content="Settings.NexusPeriodCombo.Day" />
+                                    <ComboBoxItem loc:Loc.Content="Settings.NexusPeriodCombo.Week" />
+                                    <ComboBoxItem loc:Loc.Content="Settings.NexusPeriodCombo.Month" />
+                                </ComboBox>
+                            </controls:SettingRow>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                            <ProgressRing IsActive="{x:Bind SettingsViewModel.NexusBusy, Mode=OneWay}" Width="20" Height="20" />
+                        </StackPanel>
+
+                        <TextBlock Text="{x:Bind SettingsViewModel.NexusStatusMessage, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                                   Visibility="{x:Bind SettingsViewModel.NexusStatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                        <StackPanel Spacing="4"
+                                    Visibility="{x:Bind SettingsViewModel.NexusQuotaNote, Mode=OneWay, Converter={StaticResource TextToVisibility}}">
+                            <TextBlock loc:Loc.Text="Settings.NexusQuotaLabel" Style="{StaticResource CardGroupText}"
+                                       ToolTipService.ToolTip="{x:Bind SettingsViewModel.NexusQuotaNote, Mode=OneWay}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        Visibility="{x:Bind SettingsViewModel.NexusQuotaHourly, Mode=OneWay, Converter={StaticResource TextToVisibility}}">
+                                <TextBlock loc:Loc.Text="Settings.NexusQuotaHourlyLabel" Style="{StaticResource BodyText}" MinWidth="70" />
+                                <TextBlock Text="{x:Bind SettingsViewModel.NexusQuotaHourly, Mode=OneWay}"
+                                           Style="{StaticResource LabelText}" TextWrapping="Wrap"
+                                           ToolTipService.ToolTip="{x:Bind SettingsViewModel.NexusQuotaHourly, Mode=OneWay}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        Visibility="{x:Bind SettingsViewModel.NexusQuotaDaily, Mode=OneWay, Converter={StaticResource TextToVisibility}}">
+                                <TextBlock loc:Loc.Text="Settings.NexusQuotaDailyLabel" Style="{StaticResource BodyText}" MinWidth="70" />
+                                <TextBlock Text="{x:Bind SettingsViewModel.NexusQuotaDaily, Mode=OneWay}"
+                                           Style="{StaticResource LabelText}" TextWrapping="Wrap"
+                                           ToolTipService.ToolTip="{x:Bind SettingsViewModel.NexusQuotaDaily, Mode=OneWay}" />
+                            </StackPanel>
+                            <TextBlock Text="{x:Bind SettingsViewModel.NexusQuotaNote, Mode=OneWay}" Style="{StaticResource CardNoteText}" />
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <TextBlock loc:Loc.Text="Settings.NxmLinksSection" Style="{StaticResource CardGroupText}"
+                               loc:Loc.Tooltip="Settings.NxmLinksSection.Blurb" />
+                    <StackPanel>
+                        <controls:SettingRow LabelKey="Settings.EnableNxmHandlerCheckBox" TooltipKey="Settings.NxmLinksSection.VortexNote">
+                            <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.NxmHandlerEnabled, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.EnableNxmHandlerCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <Button loc:Loc.Content="Settings.RegisterNxmLinksButton" Command="{x:Bind SettingsViewModel.RegisterNxmLinksCommand}" Style="{StaticResource RowAction}"
+                                loc:Loc.Tooltip="Settings.RegisterNxmLinksButton.Tooltip" />
+                        <Button loc:Loc.Content="Settings.UnregisterNxmLinksButton" Command="{x:Bind SettingsViewModel.UnregisterNxmLinksCommand}" Style="{StaticResource RowAction}"
+                                loc:Loc.Tooltip="Settings.UnregisterNxmLinksButton.Tooltip" />
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind SettingsViewModel.NxmOwnerText, Mode=OneWay}" Style="{StaticResource CardNoteText}" />
+                    <TextBlock loc:Loc.Text="Settings.ManagersSection" Style="{StaticResource CardGroupText}"
+                               loc:Loc.Tooltip="Settings.ManagersSection.Blurb" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <Button loc:Loc.Content="Settings.RegisterMo2Button" Command="{x:Bind SettingsViewModel.RegisterWithMo2Command}" Style="{StaticResource RowAction}"
+                                loc:Loc.Tooltip="Settings.RegisterMo2Button.Tooltip" />
+                        <Button loc:Loc.Content="Settings.RegisterNovusButton" Command="{x:Bind SettingsViewModel.RegisterWithNovusCommand}" Style="{StaticResource RowAction}"
+                                loc:Loc.Tooltip="Settings.RegisterNovusButton.Tooltip" />
+                        <Button loc:Loc.Content="Settings.RegisterVortexButton" Command="{x:Bind SettingsViewModel.RegisterWithVortexCommand}" Style="{StaticResource RowAction}"
+                                loc:Loc.Tooltip="Settings.RegisterVortexButton.Tooltip" />
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind SettingsViewModel.ManagerRegistrationStatus, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                               Visibility="{x:Bind SettingsViewModel.ManagerRegistrationStatus, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{x:Bind SettingsViewModel.NxmStatus, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                               Visibility="{x:Bind SettingsViewModel.NxmStatus, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{x:Bind SettingsViewModel.NxmPreviousHandler, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                               Visibility="{x:Bind SettingsViewModel.NxmPreviousHandler, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{x:Bind SettingsViewModel.NxmArchivesFolder, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                               Visibility="{x:Bind SettingsViewModel.NxmArchivesFolder, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+                    <TextBlock loc:Loc.Text="Settings.ButrScoresSection" Style="{StaticResource CardGroupText}"
+                               loc:Loc.Tooltip="Settings.ButrScoresSection.Blurb" />
+                    <StackPanel>
+                        <controls:SettingRow LabelKey="Settings.EnableButrScoresCheckBox" TooltipKey="Settings.ButrScoresSection.Disclaimer">
+                            <controls:SettingToggle IsChecked="{x:Bind SettingsViewModel.ButrScoresEnabled, Mode=TwoWay}"
+                                                    loc:Loc.Tooltip="Settings.EnableButrScoresCheckBox.Tooltip" />
+                        </controls:SettingRow>
+                    </StackPanel>
+                    <StackPanel Spacing="6" Visibility="{x:Bind SettingsViewModel.ButrScoresEnabled, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button loc:Loc.Content="Settings.FetchButrScoresButton" Command="{x:Bind SettingsViewModel.FetchButrScoresCommand}" Style="{StaticResource RowAction}"
+                                    loc:Loc.Tooltip="Settings.FetchButrScoresButton.Tooltip" />
+                            <Button loc:Loc.Content="Settings.CancelButrFetchButton" Command="{x:Bind SettingsViewModel.CancelButrFetchCommand}" Style="{StaticResource QuietAction}"
+                                    loc:Loc.Tooltip="Settings.CancelButrFetchButton.Tooltip"
+                                    Visibility="{x:Bind SettingsViewModel.ButrBusy, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                            <Button loc:Loc.Content="Settings.AboutButrServiceButton" Command="{x:Bind SettingsViewModel.OpenButrProjectCommand}" Style="{StaticResource QuietAction}"
+                                    loc:Loc.Tooltip="Settings.AboutButrServiceButton.Tooltip" />
+                            <ProgressRing IsActive="{x:Bind SettingsViewModel.ButrBusy, Mode=OneWay}" Width="20" Height="20" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind SettingsViewModel.ButrStatusMessage, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                                   Visibility="{x:Bind SettingsViewModel.ButrStatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                        <ItemsControl ItemsSource="{x:Bind SettingsViewModel.ButrScores}"
+                                      Visibility="{x:Bind SettingsViewModel.ButrScores.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ButrScoreRow">
+                                    <StackPanel Spacing="2" Padding="0,8" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="0,1,0,0">
+                                        <TextBlock Text="{x:Bind ModuleName}" Style="{StaticResource LabelText}"
+                                                   TextWrapping="Wrap"
+                                                   ToolTipService.ToolTip="{x:Bind ModuleName}" />
+                                        <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{x:Bind SettingsViewModel.ButrModulesWithoutData, Mode=OneWay}" Style="{StaticResource CardNoteText}"
+                                   Visibility="{x:Bind SettingsViewModel.ButrModulesWithoutData, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                    </StackPanel>
+
+                    <!-- The one setting that sends anything to anyone is BUTR's own crash report flow, and
+                         BEM only points at it. -->
+                    <TextBlock loc:Loc.Text="Settings.ButrContributeSection" Style="{StaticResource CardGroupText}"
+                               loc:Loc.Tooltip="Settings.ButrContributeSection.Blurb" />
+                    <Button loc:Loc.Content="Settings.OpenCrashReportsButton" Click="OnOpenCrashReports" Style="{StaticResource RowAction}"
+                            loc:Loc.Tooltip="Settings.OpenCrashReportsButton.Tooltip" />
+                </StackPanel>
+            </controls:CardShell>
+            <!-- The version a bug report needs, selectable, and BEM's own log folder. -->
+            <controls:CardShell x:Name="DiagnosticsCard" TitleKey="Settings.DiagnosticsSection" Visibility="Collapsed">
+                <StackPanel>
+                    <controls:SettingRow LabelKey="Settings.Group.Version" TooltipKey="Settings.DiagnosticsSection.Blurb">
+                        <TextBlock Text="{x:Bind AppVersionText}" Style="{StaticResource MonoText}" IsTextSelectionEnabled="True"
+                                   VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind AppVersionText}" />
+                    </controls:SettingRow>
+                    <controls:SettingRow LabelKey="Settings.Group.Logs" TooltipKey="Settings.OpenLogsFolderButton.Tooltip">
+                        <Button loc:Loc.Content="Settings.OpenLogsFolderButton" Command="{x:Bind ViewModel.OpenLogsFolderCommand}" Style="{StaticResource RowAction}"
+                                loc:Loc.Tooltip="Settings.OpenLogsFolderButton.Tooltip" />
+                    </controls:SettingRow>
+                </StackPanel>
+            </controls:CardShell>
+        </Grid>
+    </Grid>
+</Page>

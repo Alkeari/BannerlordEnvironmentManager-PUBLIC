@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ModSafetyPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="TextToVisibility" />
+
+        <DataTemplate x:Key="FlaggedFileTemplate" x:DataType="vm:FlaggedFileViewModel">
+            <StackPanel Spacing="6" Margin="0,8,0,0">
+                <!-- One TextBlock over every evidence line joined with a newline, rather than one
+                     TextBlock per line: WinUI cannot carry a text selection across separate sibling
+                     TextBlocks, so a per-line ItemsControl here meant copying the evidence took one
+                     copy per line. -->
+                <TextBlock Text="{x:Bind EvidenceText}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True" Foreground="{StaticResource AlkAlertAmberBrush}" />
+
+                <TextBlock Text="{x:Bind Location}" Style="{StaticResource BodyText}" FontFamily="Consolas"
+                           TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                <TextBlock Text="{x:Bind Sha256}" Style="{StaticResource BodyText}" FontFamily="Consolas"
+                           TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           Visibility="{x:Bind Sha256, Converter={StaticResource TextToVisibility}}" />
+
+                <!-- None of these rows shrinks and the page scrolls only vertically, so a narrow window put
+                     the rightmost control past the edge with no bar able to reach it: seven buttons on a
+                     finding come to about 870 px, the two filters to about 500. Each row scrolls sideways
+                     inside its own container now, on an axis the page does not use. -->
+                <controls:WrapPanel Spacing="8">
+                        <Button loc:Loc.Content="Safety.VirusTotalButton" Command="{x:Bind CheckVirusTotalCommand}"
+                                Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                loc:Loc.Tooltip="Safety.VirusTotalButton.Tooltip" />
+                        <Button loc:Loc.Content="Safety.CopyHashButton" Command="{x:Bind CopyHashCommand}"
+                                Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                loc:Loc.Tooltip="Safety.CopyHashButton.Tooltip" />
+                        <Button loc:Loc.Content="Safety.OpenFlaggedFileFolderButton" Command="{x:Bind OpenContainingFolderCommand}"
+                                Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                loc:Loc.Tooltip="Safety.OpenFlaggedFileFolderButton.Tooltip" />
+                    </controls:WrapPanel>
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer>
+    <Grid Padding="8">
+        <Grid RowSpacing="12">
+            <!-- The findings are what this page is for, and the prose that would crowd them is written
+                 by the scan itself, so it arrives at the moment the list is fullest. The list keeps a
+                 floor of 240 px, four collapsed rows, and every line of prose above and below it is
+                 held to two lines, so the most the scan's own writing can cost the list is about
+                 107 px and it can never take the floor. Below about 560 px of page height the floor
+                 cannot be honored and the grid runs past the bottom edge rather than clipping. -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <controls:PageHeader TitleKey="Safety.Title" BlurbKey="Safety.Blurb">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button loc:Loc.Content="Safety.ScanButton" Command="{x:Bind SafetyViewModel.ScanCommand}"
+                            Style="{StaticResource PrimaryAction}" Width="120"
+                            loc:Loc.Tooltip="Safety.ScanButton.Tooltip" />
+                    <Button loc:Loc.Content="Safety.StopButton" Command="{x:Bind SafetyViewModel.CancelScanCommand}"
+                            Style="{StaticResource Action}" Width="100"
+                            Visibility="{x:Bind SafetyViewModel.IsScanning, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                            loc:Loc.Tooltip="Safety.StopButton.Tooltip" />
+                    <ProgressRing IsActive="{x:Bind SafetyViewModel.IsScanning, Mode=OneWay}" Width="24" Height="24" />
+                    <CheckBox loc:Loc.Content="Safety.OnlyFindingsCheckBox" IsChecked="{x:Bind SafetyViewModel.OnlyFindings, Mode=TwoWay}"
+                              Style="{StaticResource AlkCheckBox}"
+                              loc:Loc.Tooltip="Safety.OnlyFindingsCheckBox.Tooltip" />
+                    <Button loc:Loc.Content="Safety.CopyReportButton" Command="{x:Bind SafetyViewModel.CopyReportCommand}"
+                            Style="{StaticResource Action}" Width="140"
+                            loc:Loc.Tooltip="Safety.CopyReportButton.Tooltip" />
+                </StackPanel>
+            </controls:PageHeader>
+
+            <!-- Two lines each, which is the share this block declares. Both are rewritten by the scan
+                 and every translation is a different length, so left to wrap freely they grew into the
+                 findings at exactly the moment there were most findings to read. What does not fit is
+                 trimmed and readable in the tooltip. -->
+            <controls:AdjustableSection Grid.Row="2" SectionKey="Safety.Summary" HeadingKey="Safety.Section.Summary"
+                                        StartsCollapsed="False" DefaultBodyHeight="120">
+            <ScrollViewer>
+            <StackPanel Spacing="4">
+                <TextBlock Text="{x:Bind SafetyViewModel.Summary, Mode=OneWay}" Style="{StaticResource SubHeadingText}"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           ToolTipService.ToolTip="{x:Bind SafetyViewModel.Summary, Mode=OneWay}" />
+                <TextBlock Text="{x:Bind SafetyViewModel.BlocklistNote, Mode=OneWay}" Style="{StaticResource BodyText}"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           ToolTipService.ToolTip="{x:Bind SafetyViewModel.BlocklistNote, Mode=OneWay}"
+                           Visibility="{x:Bind SafetyViewModel.BlocklistNote, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+            </StackPanel>
+            </ScrollViewer>
+            </controls:AdjustableSection>
+
+            <controls:AdjustableSection Grid.Row="3" SectionKey="Safety.Findings" HeadingKey="Safety.Section.Findings"
+                                        StartsCollapsed="False" DefaultBodyHeight="420"
+                                        Visibility="{x:Bind SafetyViewModel.HasRows, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+            <Border Background="{StaticResource AlkSurfaceBrush}" Padding="10" CornerRadius="0"
+                    BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1">
+                <ListView ItemsSource="{x:Bind SafetyViewModel.Rows}" SelectionMode="None"
+                          Background="Transparent" BorderThickness="0">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SafetyRowViewModel">
+                            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                      Margin="0,0,0,6"
+                                      AutomationProperties.Name="{x:Bind AutomationName}"
+                                      loc:Loc.Tooltip="Safety.RowExpander.Tooltip">
+                                <Expander.Header>
+                                    <Grid ColumnSpacing="12" Padding="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <!-- The header is the toggle that opens the evidence, so its text opts
+                                             out of selection. The evidence below stays selectable. -->
+                                        <TextBlock Text="{x:Bind VerdictText}" Style="{StaticResource LabelText}"
+                                                   IsTextSelectionEnabled="False" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource LabelText}"
+                                                       IsTextSelectionEnabled="False"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Text="{x:Bind Detail}" Style="{StaticResource BodyText}"
+                                                       IsTextSelectionEnabled="False"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Expander.Header>
+
+                                <StackPanel Spacing="8" Padding="0,4,0,8">
+                                    <controls:FindingRow Severity="Warning" Headline="{x:Bind FindingHeadline}"
+                                                         CanAccept="{x:Bind CanAcceptRisk, Mode=OneWay}"
+                                                         IsAccepted="{x:Bind Accepted, Mode=OneWay}"
+                                                         AcceptCommand="{x:Bind AcceptRiskCommand}"
+                                                         UndoCommand="{x:Bind UndoAcceptRiskCommand}"
+                                                         CommandParameter="{x:Bind}" IsTextSelectable="False"
+                                                         Visibility="{x:Bind IsAlarm, Converter={StaticResource BoolToVisibility}}" />
+
+                                    <TextBlock Text="{x:Bind VerdictExplanation}" Style="{StaticResource BodyText}"
+                                               TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                                    <TextBlock Text="{x:Bind Path}" Style="{StaticResource BodyText}"
+                                               FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                                    <ItemsControl ItemsSource="{x:Bind Flagged}"
+                                                  ItemTemplate="{StaticResource FlaggedFileTemplate}"
+                                                  Visibility="{x:Bind HasFlagged, Converter={StaticResource BoolToVisibility}}" />
+
+                                    <StackPanel Spacing="4"
+                                                Visibility="{x:Bind HasUnreadable, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock loc:Loc.Text="Safety.UnreadableHeading" Style="{StaticResource LabelText}" />
+                                        <TextBlock Text="{x:Bind UnreadableText}" Style="{StaticResource BodyText}"
+                                                   TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="{x:Bind SignatureNote}" Style="{StaticResource BodyText}"
+                                               TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                               Visibility="{x:Bind HasSignatureNote, Converter={StaticResource BoolToVisibility}}" />
+
+                                    <TextBlock Text="{x:Bind CapabilityText}" Style="{StaticResource BodyText}"
+                                               TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+
+                                    <TextBlock Text="{x:Bind UnrecognizedUrlText}" Style="{StaticResource BodyText}"
+                                               TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                               Visibility="{x:Bind HasUnrecognizedUrls, Converter={StaticResource BoolToVisibility}}" />
+
+                                    <TextBlock Text="{x:Bind ReportNote}" Style="{StaticResource BodyText}"
+                                               TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                                               Foreground="{StaticResource AlkWarmGoldShadowBrush}"
+                                               Visibility="{x:Bind HasReportNote, Converter={StaticResource BoolToVisibility}}" />
+
+                                    <controls:WrapPanel Spacing="8">
+                                            <Button loc:Loc.Content="Safety.OpenFolderButton" Command="{x:Bind OpenFolderCommand}"
+                                                    Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                                    loc:Loc.Tooltip="Safety.OpenFolderButton.Tooltip" />
+                                            <Button loc:Loc.Content="Safety.OpenPageButton" Command="{x:Bind OpenPageCommand}"
+                                                    Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                                    loc:Loc.Tooltip="Safety.OpenPageButton.Tooltip" />
+                                            <Button loc:Loc.Content="Safety.CopyButton" Command="{x:Bind CopyCommand}"
+                                                    Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                                    loc:Loc.Tooltip="Safety.CopyButton.Tooltip" />
+                                            <Button loc:Loc.Content="Safety.DisableButton" Command="{x:Bind DisableCommand}"
+                                                    Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                                    loc:Loc.Tooltip="Safety.DisableButton.Tooltip" />
+                                            <!-- Absent, not grayed, where BEM cannot name the exact mod: the note
+                                                 above says why, and an accusation is not something to offer by
+                                                 mistake. -->
+                                            <Button loc:Loc.Content="Safety.ReportButton" Command="{x:Bind ReportUpstreamCommand}"
+                                                    Style="{StaticResource Action}" HorizontalAlignment="Left"
+                                                    Visibility="{x:Bind CanReport, Converter={StaticResource BoolToVisibility}}"
+                                                    loc:Loc.Tooltip="Safety.ReportButton.Tooltip" />
+                                            <Button loc:Loc.Content="Safety.RemoveButton" Command="{x:Bind RemoveCommand}"
+                                                    Style="{StaticResource DangerAction}" HorizontalAlignment="Left"
+                                                    loc:Loc.Tooltip="Safety.RemoveButton.Tooltip" />
+                                        </controls:WrapPanel>
+                                </StackPanel>
+                            </Expander>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+            </controls:AdjustableSection>
+
+            <TextBlock Grid.Row="3" Text="{x:Bind SafetyViewModel.EmptyListNote, Mode=OneWay}"
+                       Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                       VerticalAlignment="Top"
+                       Visibility="{x:Bind SafetyViewModel.EmptyListNote, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+
+            <!-- The same share below the list. The status line changes length on every scan and the
+                 attribution is a different length in every language, and both of them push up from
+                 under the findings rather than down. -->
+            <controls:AdjustableSection Grid.Row="4" SectionKey="Safety.Status" HeadingKey="Safety.Section.Status"
+                                        StartsCollapsed="False" DefaultBodyHeight="120">
+            <ScrollViewer>
+            <StackPanel Spacing="4">
+                <TextBlock Text="{x:Bind SafetyViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource BodyText}"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           ToolTipService.ToolTip="{x:Bind SafetyViewModel.StatusMessage, Mode=OneWay}"
+                           Visibility="{x:Bind SafetyViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource TextToVisibility}}" />
+                <TextBlock Text="{x:Bind SafetyViewModel.AttributionText}" Style="{StaticResource BodyText}"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           Foreground="{StaticResource AlkWarmGoldShadowBrush}"
+                           loc:Loc.Tooltip="Safety.AttributionText.Tooltip" />
+            </StackPanel>
+            </ScrollViewer>
+            </controls:AdjustableSection>
+        </Grid>
+    </Grid>
+    </ScrollViewer>
+</Page>

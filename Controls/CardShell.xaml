@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Controls.CardShell"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    mc:Ignorable="d">
+
+    <!-- A card with confines (proposal 1.2). The header and the optional toolbar and footer never
+         scroll; the body takes whatever share of the page grid the card was given and scrolls inside
+         it, vertically only, so the card never grows to fit what it holds and the page never scrolls.
+         A body that already scrolls itself (a ListView) sets BodyScrolls False so there is never a bar
+         inside a bar. -->
+    <Border x:Name="Frame" Style="{StaticResource AlkCard}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid x:Name="HeaderRow" Padding="{StaticResource AlkCardHeaderPadding}" MinHeight="40">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <!-- The primary card's marker: shape, never color alone. -->
+                <TextBlock x:Name="PrimaryMarker" Style="{StaticResource CardTitleText}" Visibility="Collapsed" Margin="0,0,8,0"
+                           IsTextSelectionEnabled="False" VerticalAlignment="Center" />
+                <!-- Title and meta share the free width and wrap: a narrow card shows the whole title, and the
+                     count or path drops under it rather than being squeezed or cut. -->
+                <controls:WrapPanel Grid.Column="1" Spacing="12" RowSpacing="2" VerticalAlignment="Center" Margin="0,0,8,0">
+                    <TextBlock x:Name="TitleText" Style="{StaticResource CardTitleText}" />
+                    <TextBlock x:Name="MetaText" Style="{StaticResource CardMetaText}"
+                               TextWrapping="Wrap" TextTrimming="None" VerticalAlignment="Center" />
+                </controls:WrapPanel>
+                <ContentPresenter x:Name="HeaderActionsHost" Grid.Column="2" Content="{x:Bind HeaderActions, Mode=OneWay}"
+                                  VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- Busy: a gold indeterminate segment on the hairline track, under the header, so the card
+                 keeps its previous content and the layout never jumps. -->
+            <ProgressBar x:Name="BusyBar" Grid.Row="1" IsIndeterminate="True" Height="2" MinHeight="2"
+                         Margin="0" Visibility="Collapsed" />
+
+            <!-- A failed action: one amber line naming what happened and what to do. -->
+            <controls:WrapPanel x:Name="BannerRow" Grid.Row="2" Spacing="8" Margin="20,0,20,8" Visibility="Collapsed">
+                <TextBlock x:Name="BannerText" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkAlertAmberBrush}"
+                           TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button loc:Loc.Content="Controls.FindingRow.Accept" Click="OnAcceptBanner" Style="{StaticResource RowAction}"
+                        loc:Loc.Tooltip="Controls.FindingRow.Accept.Tooltip" />
+            </controls:WrapPanel>
+
+            <ContentPresenter x:Name="ToolbarHost" Grid.Row="3" Content="{x:Bind Toolbar, Mode=OneWay}"
+                              Padding="{StaticResource AlkCardToolbarPadding}" />
+
+            <Grid x:Name="BodyRegion" Grid.Row="4">
+                <ScrollViewer x:Name="BodyScroller" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                    <ContentPresenter x:Name="BodyHost" Content="{x:Bind Body, Mode=OneWay}" Padding="{StaticResource AlkCardBodyPadding}"
+                                      HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+                </ScrollViewer>
+            </Grid>
+
+            <Border x:Name="FooterRow" Grid.Row="5" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="0,1,0,0"
+                    Padding="{StaticResource AlkCardFooterPadding}" Visibility="Collapsed">
+                <!-- No scroller: the footer gets the card's width, so its button row wraps instead of cutting the last one. -->
+                <ContentPresenter x:Name="FooterHost" Content="{x:Bind Footer, Mode=OneWay}" />
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

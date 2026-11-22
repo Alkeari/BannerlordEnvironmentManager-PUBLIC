@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ExceptionPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    Background="{StaticResource AlkBackgroundBrush}">
+
+    <!-- The Bannerlord Exception Manager: one caught crash, shown in a window of its own while the game
+         holds the failing frame. The answer row stays in view above the evidence, because the game is
+         frozen until one of its buttons is pressed. -->
+    <Grid Padding="20,16,20,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock loc:Loc.Text="Exception.Title" Style="{StaticResource PageTitleText}" />
+            <TextBlock Text="{x:Bind ViewModel.Headline, Mode=OneWay}" Style="{StaticResource CardTitleText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+            <TextBlock Text="{x:Bind ViewModel.Message, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" MaxLines="4" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" />
+            <TextBlock x:Name="GameVersionText" Text="{x:Bind ViewModel.GameVersion, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasGameVersion, Mode=OneWay}" Style="{StaticResource LabelText}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Spacing="8">
+            <TextBlock Text="{x:Bind ViewModel.Guidance, Mode=OneWay}" Style="{StaticResource LabelText}" TextWrapping="Wrap" />
+            <TextBlock Text="{x:Bind ViewModel.CrashCount, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasCrashCount, Mode=OneWay}" Style="{StaticResource LabelText}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="ContinueButton" loc:Loc.Content="Exception.Action.Continue" loc:Loc.Tooltip="Exception.Action.Continue.Tooltip"
+                        Command="{x:Bind ViewModel.ContinueCommand}" Visibility="{x:Bind ViewModel.CanContinue, Mode=OneWay}" Style="{StaticResource PrimaryAction}" />
+                <Button x:Name="SaveAndCloseButton" loc:Loc.Content="Exception.Action.SaveAndClose" loc:Loc.Tooltip="Exception.Action.SaveAndClose.Tooltip"
+                        Command="{x:Bind ViewModel.SaveAndCloseCommand}" Visibility="{x:Bind ViewModel.CanSave, Mode=OneWay}" Style="{StaticResource Action}" />
+                <Button x:Name="CloseGameButton" loc:Loc.Content="Exception.Action.Close" loc:Loc.Tooltip="Exception.Action.Close.Tooltip"
+                        Command="{x:Bind ViewModel.CloseGameCommand}" Visibility="{x:Bind ViewModel.IsWaiting, Mode=OneWay}" Style="{StaticResource Action}" />
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="4">
+            <Button x:Name="TabException" Tag="0" loc:Loc.Content="Exception.Tab.Exception" loc:Loc.Tooltip="Exception.Tab.Exception.Tooltip" Click="OnTab" Style="{StaticResource PrimaryAction}" />
+            <Button x:Name="TabSuspects" Tag="1" loc:Loc.Content="Exception.Tab.Suspects" loc:Loc.Tooltip="Exception.Tab.Suspects.Tooltip" Click="OnTab" Style="{StaticResource Action}" />
+            <Button x:Name="TabMods" Tag="2" loc:Loc.Content="Exception.Tab.Mods" loc:Loc.Tooltip="Exception.Tab.Mods.Tooltip" Click="OnTab" Style="{StaticResource Action}" />
+            <Button x:Name="TabAssemblies" Tag="3" loc:Loc.Content="Exception.Tab.Assemblies" loc:Loc.Tooltip="Exception.Tab.Assemblies.Tooltip" Click="OnTab" Style="{StaticResource Action}" />
+            <Button x:Name="TabPatches" Tag="4" loc:Loc.Content="Exception.Tab.Patches" loc:Loc.Tooltip="Exception.Tab.Patches.Tooltip" Click="OnTab" Style="{StaticResource Action}" />
+            <Button x:Name="TabLog" Tag="5" loc:Loc.Content="Exception.Tab.Log" loc:Loc.Tooltip="Exception.Tab.Log.Tooltip" Click="OnTab" Style="{StaticResource Action}" />
+            <Button x:Name="TabScreenshot" Tag="6" loc:Loc.Content="Exception.Tab.Screenshot" loc:Loc.Tooltip="Exception.Tab.Screenshot.Tooltip" Click="OnTab" Style="{StaticResource Action}" />
+            <Button x:Name="TabModules" Tag="7" loc:Loc.Content="Exception.Tab.Modules" loc:Loc.Tooltip="Exception.Tab.Modules.Tooltip" Click="OnTab" Style="{StaticResource Action}" />
+        </StackPanel>
+
+        <Border Grid.Row="3" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1" Background="{StaticResource AlkDeepGraphiteBrush}">
+            <ScrollViewer x:Name="PanelScroll" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Padding="12,8,12,8">
+                <Grid>
+                    <StackPanel x:Name="PanelException" Spacing="8">
+                        <TextBlock Text="{x:Bind ViewModel.Notice, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasNotice, Mode=OneWay}" Style="{StaticResource LabelText}" TextWrapping="Wrap" />
+                        <TextBlock loc:Loc.Text="CrashView.Section.Stack" Style="{StaticResource CardTitleText}" />
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.Frames}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Text="{x:Bind}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock loc:Loc.Text="Exception.Section.RawStack" Style="{StaticResource CardTitleText}" Margin="0,8,0,0" />
+                        <TextBlock Text="{x:Bind ViewModel.RawStack, Mode=OneWay}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="PanelSuspects" Spacing="8" Visibility="Collapsed">
+                        <TextBlock loc:Loc.Text="Exception.Suspects.Blurb" Style="{StaticResource LabelText}" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.Suspects}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Text="{x:Bind}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button x:Name="TurnOffSuspectsButton" loc:Loc.Content="Exception.Action.TurnOffSuspects" loc:Loc.Tooltip="Exception.Action.TurnOffSuspects.Tooltip"
+                                Command="{x:Bind ViewModel.TurnOffSuspectsCommand}" Visibility="{x:Bind ViewModel.CanTurnOffSuspects, Mode=OneWay}" HorizontalAlignment="Left" Style="{StaticResource Action}" />
+                        <TextBlock x:Name="SuspectsStatusText" Text="{x:Bind ViewModel.SuspectsStatus, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasSuspectsStatus, Mode=OneWay}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <ItemsControl x:Name="PanelMods" ItemsSource="{x:Bind ViewModel.Mods}" Visibility="Collapsed">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{x:Bind}" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <ItemsControl x:Name="PanelAssemblies" ItemsSource="{x:Bind ViewModel.Assemblies}" Visibility="Collapsed">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{x:Bind}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <ItemsControl x:Name="PanelPatches" ItemsSource="{x:Bind ViewModel.Patches}" Visibility="Collapsed">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{x:Bind}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <ItemsControl x:Name="PanelModules" ItemsSource="{x:Bind ViewModel.Modules}" Visibility="Collapsed">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{x:Bind}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock x:Name="PanelLog" Text="{x:Bind ViewModel.LogText, Mode=OneWay}" Style="{StaticResource MonoText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="Collapsed" />
+                    <StackPanel x:Name="PanelScreenshot" Spacing="8" Visibility="Collapsed">
+                        <TextBlock loc:Loc.Text="Exception.Empty.Screenshot" Visibility="{x:Bind ViewModel.HasNoScreenshot, Mode=OneWay}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                        <Image x:Name="ScreenshotImage" Source="{x:Bind ViewModel.Screenshot, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasScreenshot, Mode=OneWay}" Stretch="Uniform" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="4" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" x:Name="CopyReportButton" loc:Loc.Content="Exception.Action.CopyReport" loc:Loc.Tooltip="Exception.Action.CopyReport.Tooltip"
+                    Command="{x:Bind ViewModel.CopyReportCommand}" IsEnabled="{x:Bind ViewModel.HasReport, Mode=OneWay}" Style="{StaticResource Action}" />
+            <Button Grid.Column="1" x:Name="SaveReportButton" loc:Loc.Content="Exception.Action.SaveReport" loc:Loc.Tooltip="Exception.Action.SaveReport.Tooltip"
+                    Command="{x:Bind ViewModel.SaveReportCommand}" IsEnabled="{x:Bind ViewModel.HasReport, Mode=OneWay}" Style="{StaticResource Action}" />
+            <Button Grid.Column="2" x:Name="SaveBundleButton" loc:Loc.Content="Exception.Action.SaveBundle" loc:Loc.Tooltip="Exception.Action.SaveBundle.Tooltip"
+                    Command="{x:Bind ViewModel.SaveBundleCommand}" IsEnabled="{x:Bind ViewModel.HasReport, Mode=OneWay}" Style="{StaticResource Action}" />
+            <Button Grid.Column="3" x:Name="SaveDumpButton" loc:Loc.Content="Exception.Action.SaveDump" loc:Loc.Tooltip="Exception.Action.SaveDump.Tooltip"
+                    Command="{x:Bind ViewModel.SaveDumpCommand}" IsEnabled="{x:Bind ViewModel.CanSaveDump, Mode=OneWay}" Style="{StaticResource Action}" />
+            <Button Grid.Column="4" x:Name="OpenFolderButton" loc:Loc.Content="Exception.Action.OpenFolder" loc:Loc.Tooltip="Exception.Action.OpenFolder.Tooltip"
+                    Command="{x:Bind ViewModel.OpenFolderCommand}" Style="{StaticResource Action}" />
+            <TextBlock Grid.Column="5" Text="{x:Bind ViewModel.Status, Mode=OneWay}" Style="{StaticResource LabelText}" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </Grid>
+    </Grid>
+</Page>

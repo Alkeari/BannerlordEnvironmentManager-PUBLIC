@@ -1,0 +1,178 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ShellPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <!-- 40 px items, as the redesign mockups draw them. -->
+        <x:Double x:Key="NavigationViewItemOnLeftMinHeight">40</x:Double>
+
+        <Style x:Key="ShellNavItem" TargetType="NavigationViewItem">
+            <Setter Property="FontFamily" Value="{StaticResource AlkUiFontFamily}" />
+            <Setter Property="FontSize" Value="{StaticResource AppFontSize}" />
+        </Style>
+    </Page.Resources>
+
+    <!-- The shell (redesign step 2): a 220 px sidebar that becomes a 56 px icon rail below 1100 px,
+         work destinations on top (Play, Library, Troubleshoot, Saves) and set-up ones in the
+         footer (Versions, Settings), the Advanced Mode state under them, and the context bar above
+         every page. A NavigationViewItem spends 74 px before its text starts, so 220 leaves 146 px,
+         more than the longest label ("Troubleshoot", "Settings") needs at 14 px. -->
+    <Grid AllowDrop="True" DragOver="OnArchiveDragOver" Drop="OnArchiveDrop">
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- Across the whole window rather than inside a page, so the notice is seen wherever BEM opens
+         and takes no page's space once it is closed. -->
+    <Border x:Name="BemUpdateBar" Grid.Row="0" Visibility="Collapsed"
+            Background="{StaticResource AlkRaisedBrush}" BorderBrush="{StaticResource AlkHairlineBrush}"
+            BorderThickness="0,0,0,1" Padding="16,8">
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="BemUpdateText" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                       VerticalAlignment="Center" IsTextSelectionEnabled="True" />
+            <Button Grid.Column="1" loc:Loc.Content="Shell.BemUpdate.OpenPage" Style="{StaticResource PrimaryAction}"
+                    loc:Loc.Tooltip="Shell.BemUpdate.OpenPage.Tooltip" Click="OnBemUpdateOpenPage" />
+            <Button Grid.Column="2" loc:Loc.Content="Shell.BemUpdate.Skip" Style="{StaticResource Action}"
+                    loc:Loc.Tooltip="Shell.BemUpdate.Skip.Tooltip" Click="OnBemUpdateSkip" />
+            <Button Grid.Column="3" Style="{StaticResource Quiet}"
+                    loc:Loc.Tooltip="Shell.BemUpdate.Close.Tooltip" Click="OnBemUpdateClose">
+                <FontIcon Glyph="&#xE711;" FontSize="12" />
+            </Button>
+        </Grid>
+    </Border>
+
+    <NavigationView x:Name="Navigation" Grid.Row="1"
+                    IsBackButtonVisible="Collapsed"
+                    IsSettingsVisible="False"
+                    IsPaneToggleButtonVisible="False"
+                    PaneDisplayMode="Auto"
+                    OpenPaneLength="{StaticResource AlkSidebarWidth}"
+                    CompactPaneLength="{StaticResource AlkRailWidth}"
+                    CompactModeThresholdWidth="0"
+                    ExpandedModeThresholdWidth="{StaticResource AlkCompactWindowWidth}"
+                    DisplayModeChanged="OnDisplayModeChanged"
+                    ItemInvoked="OnItemInvoked"
+                    Loaded="OnLoaded">
+        <NavigationView.PaneHeader>
+            <StackPanel x:Name="Brand" Padding="16,12,16,16" Spacing="0">
+                <TextBlock Style="{StaticResource CardTitleText}" loc:Loc.Text="Shell.Brand.Line1" IsTextSelectionEnabled="False" />
+                <TextBlock Style="{StaticResource CardMetaText}" Foreground="{StaticResource AlkSteelGrayBrush}"
+                           loc:Loc.Text="Shell.Brand.Line2" IsTextSelectionEnabled="False" />
+            </StackPanel>
+        </NavigationView.PaneHeader>
+        <NavigationView.MenuItems>
+            <NavigationViewItem loc:Loc.Content="Environment.Title" Tag="Environment" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Play.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE768;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Install.Title" Tag="Install" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Library.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE896;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Troubleshoot.Title" Tag="Troubleshoot" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Troubleshoot.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE946;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Saves.Title" Tag="Saves" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Saves.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE74E;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+        <!-- Set-up work done a few times rather than daily. Which version to play is picked in the
+             context bar on every page; Versions is where versions are added and removed. -->
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="VersionsItem" loc:Loc.Content="Versions.Title" Tag="Versions" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Versions.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE7B8;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem loc:Loc.Content="Settings.Title" Tag="Settings" Style="{StaticResource ShellNavItem}"
+                                loc:Loc.Tooltip="Shell.Nav.Settings.Tooltip">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE713;" FontSize="16" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
+        <!-- Which mode the screen is in, so the user can tell why a panel is or is not there. It reads, it
+             does not navigate, and a header inside the footer items collapsed to nothing. Hidden on the icon rail. -->
+        <NavigationView.PaneFooter>
+            <Border x:Name="AdvancedModeHeader" Padding="16,8,16,12" loc:Loc.Tooltip="Shell.AdvancedMode.Tooltip">
+                <TextBlock x:Name="AdvancedModeText" Style="{StaticResource CardMetaText}" IsTextSelectionEnabled="False" />
+            </Border>
+        </NavigationView.PaneFooter>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <controls:ContextBar x:Name="Context" Margin="20,16,20,0" OpenVersionsRequested="OnOpenVersionsRequested" />
+
+            <Frame x:Name="ContentFrame" Grid.Row="1" Navigating="OnContentFrameNavigating" Navigated="OnContentFrameNavigated" NavigationFailed="OnContentFrameNavigationFailed" />
+        </Grid>
+    </NavigationView>
+
+    <!-- The slide-in detail panel (proposal 2.8): min(640 px, the window), Deep Graphite with a hairline
+         edge over a 60 percent scrim, a 20 px gold title, Close and Escape. Detail opens here instead of
+         on a page of its own. -->
+    <!-- Its width is dragged from the left edge and kept like every side panel's (DetailPanelWidth). -->
+    <Grid x:Name="DetailOverlay" Grid.RowSpan="2" Visibility="Collapsed">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="DetailColumn" Width="640" />
+        </Grid.ColumnDefinitions>
+        <Border Grid.ColumnSpan="2" Background="{StaticResource AlkPanelScrimBrush}" Tapped="OnDetailScrimTapped" />
+        <Border x:Name="DetailPanel" Grid.Column="1"
+                Background="{StaticResource AlkSurfaceBrush}" BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="1,0,0,0">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="DetailSlide" />
+            </Border.RenderTransform>
+            <Grid Padding="24,20,24,20" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="DetailTitle" Style="{StaticResource HeadingText}" TextWrapping="Wrap" />
+                    <Button Grid.Column="1" loc:Loc.Content="Shell.Detail.Close" Style="{StaticResource QuietAction}" Click="OnDetailClose"
+                            loc:Loc.Tooltip="Shell.Detail.Close.Tooltip" />
+                </Grid>
+                <ScrollViewer Grid.Row="1" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+                    <ContentPresenter x:Name="DetailContent" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        <controls:PanelSplitter x:Name="DetailSplitter" Grid.Column="1" SectionKey="DetailPanelWidth" MinimumColumnWidth="320" />
+    </Grid>
+    </Grid>
+</Page>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.CrashesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- Crashes, the second tab of Troubleshoot (mockup-forensics.html): "it crashed, why" in one tab. The
+         ranked suspects from the crash report being read are the left card; the right card shows why the
+         selected suspect is suspected, and as tabs the evidence itself: the crash reports, the logs, the
+         diagnostic files and the watched sessions. The one Scan button is on Troubleshoot's header. -->
+    <Grid x:Name="Body" ColumnSpacing="{StaticResource AlkCardGap}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="SuspectsColumn" Width="*" />
+            <ColumnDefinition Width="2*" />
+        </Grid.ColumnDefinitions>
+
+        <controls:CardShell TitleKey="Forensics.Card.Suspects" IsPrimary="True" BodyScrolls="False" BodyPadded="False"
+                            Meta="{x:Bind SuspectCount(Diagnostics.Suspects.Count), Mode=OneWay}">
+            <Grid>
+                <TextBlock Style="{StaticResource BodyText}" TextWrapping="Wrap" Margin="20,4,20,16"
+                           loc:Loc.Text="Forensics.Suspects.Empty"
+                           Visibility="{x:Bind NoSuspects(Diagnostics.Suspects.Count), Mode=OneWay}" />
+                <!-- Selecting a suspect is how its reasoning is opened, so the text opts out of selection. -->
+                <ListView x:Name="SuspectList" ItemsSource="{x:Bind Diagnostics.Suspects}" SelectionMode="Single"
+                          SelectionChanged="OnSuspectSelected" Background="Transparent" BorderThickness="0" Padding="8,0,8,8"
+                          loc:Loc.Tooltip="Forensics.Suspects.Tooltip">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:CrashModuleRowViewModel">
+                            <TextBlock TextWrapping="Wrap" Text="{x:Bind Heading}" Style="{StaticResource LabelText}" Margin="4,8" IsTextSelectionEnabled="False"
+                                       ToolTipService.ToolTip="{x:Bind Heading}" />
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </controls:CardShell>
+
+        <controls:CardShell Grid.Column="1" BodyScrolls="False" BodyPadded="False">
+            <controls:CardShell.Toolbar>
+                <controls:Segmented x:Name="Tabs" SelectionChanged="OnTabChanged" />
+            </controls:CardShell.Toolbar>
+            <Grid>
+                <!-- Why the selected suspect is suspected: the evidence the report gives, and the note. -->
+                <ScrollViewer x:Name="ReasoningView" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Padding="20,4,20,16">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="ReasoningTitle" Style="{StaticResource CardTitleText}" />
+                        <TextBlock x:Name="ReasoningEvidence" Style="{StaticResource LabelText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                        <TextBlock x:Name="ReasoningNote" Style="{StaticResource BodyText}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    </StackPanel>
+                </ScrollViewer>
+                <Frame x:Name="EvidenceFrame" Visibility="Collapsed" />
+            </Grid>
+        </controls:CardShell>
+
+        <controls:PanelSplitter Grid.Column="1" SectionKey="ForensicsDetailWidth" />
+    </Grid>
+</Page>

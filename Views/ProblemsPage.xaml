@@ -1,0 +1,247 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.ProblemsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:vm="using:BannerlordEnvironmentManager.ViewModels"
+    xmlns:views="using:BannerlordEnvironmentManager.Views"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!-- One finding, the same row on every check: FindingRow with the check's own buttons before
+             Accept the Risk. Evidence (paths, methods) shows in Advanced Mode. -->
+        <DataTemplate x:Key="HealthFindingTemplate" x:DataType="vm:HealthFindingRowViewModel">
+            <Border BorderBrush="{StaticResource AlkHairlineBrush}" BorderThickness="0,0,0,1">
+                <Grid ColumnSpacing="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <!-- Selects the finding for Accept Selected; only a finding that can be accepted has one. -->
+                <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" MinWidth="0" VerticalAlignment="Top" Margin="0,10,0,0"
+                          Visibility="{x:Bind CanSelect, Mode=OneWay}" loc:Loc.Tooltip="Health.SelectFinding.Tooltip" />
+                <controls:FindingRow Grid.Column="1" Severity="{x:Bind Severity}" Headline="{x:Bind Headline}" Detail="{x:Bind Detail}"
+                                     Evidence="{x:Bind Evidence}"
+                                     ShowEvidence="{x:Bind views:ShellViewModels.Instance.NavigationSettings.IsAdvancedMode, Mode=OneWay}"
+                                     IsAccepted="{x:Bind IsAccepted, Mode=OneWay}" CanAccept="{x:Bind CanAccept}"
+                                     AcceptCommand="{x:Bind AcceptCommand}" UndoCommand="{x:Bind UndoCommand}">
+                    <controls:WrapPanel Spacing="8">
+                    <!-- The whole evidence, untrimmed, in the slide-in panel. -->
+                    <Button loc:Loc.Content="Health.Details" Style="{StaticResource QuietAction}" Click="OnFindingDetails" Tag="{x:Bind}"
+                            loc:Loc.Tooltip="Health.Details.Tooltip" />
+                    <Button Content="{x:Bind SelectSimilarLabel, Mode=OneWay}" Command="{x:Bind SelectSimilarCommand}" Style="{StaticResource QuietAction}"
+                            Visibility="{x:Bind HasSimilar, Mode=OneWay}" loc:Loc.Tooltip="Health.SelectSimilar.Tooltip" />
+                    <!-- Every action that changes something; the ones that only look are in Details. -->
+                    <ItemsControl ItemsSource="{x:Bind PrimaryActions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:KnownIssueActionViewModel">
+                                <Button Content="{x:Bind Label}" Command="{x:Bind Command}" CommandParameter="{x:Bind Parameter}"
+                                        Style="{StaticResource RowAction}" ToolTipService.ToolTip="{x:Bind Tooltip}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{x:Bind ActionResult, Mode=OneWay}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSoftChampagneBrush}"
+                               TextWrapping="Wrap" MaxWidth="560" VerticalAlignment="Center" IsTextSelectionEnabled="False"
+                               Visibility="{x:Bind HasActionResult, Mode=OneWay}" />
+                    </controls:WrapPanel>
+                </controls:FindingRow>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+
+    <!-- Problems, the first tab of Troubleshoot (redesign step 6, mockup-health.html): every finding from
+         every check in one card, errors first, each with what to do, the check's own buttons and Accept
+         the Risk. An accepted finding leaves the lists for the Accepted Findings section, where Undo
+         returns it, and still counts in the totals beside the title. The chip row narrows the list to one
+         check. The Accepted Findings and Accepted Risks sections at the foot are the only place either
+         list is kept. -->
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <controls:Segmented ItemsSource="{x:Bind ViewModel.Families}" HorizontalAlignment="Left"
+                            SelectedKey="{x:Bind ViewModel.SelectedFamily, Mode=TwoWay}" />
+
+        <controls:CardShell x:Name="HealthCard" Grid.Row="1" IsBusy="{x:Bind DiagnosticsViewModel.IsBusy, Mode=OneWay}" BodyScrolls="False" BodyPadded="False">
+            <controls:CardShell.HeaderActions>
+                <StackPanel x:Name="HeaderBar" Orientation="Horizontal" Spacing="12">
+                <Button x:Name="SelectAllButton" loc:Loc.Content="Health.SelectAllShown" Command="{x:Bind ViewModel.SelectAllShownCommand}" Style="{StaticResource QuietAction}"
+                        loc:Loc.Tooltip="Health.SelectAllShown.Tooltip" />
+                <Button x:Name="ClearSelectionButton" loc:Loc.Content="Health.ClearSelection" Command="{x:Bind ViewModel.ClearSelectionCommand}" Style="{StaticResource QuietAction}"
+                        Visibility="{x:Bind ViewModel.HasSelection, Mode=OneWay}" loc:Loc.Tooltip="Health.ClearSelection.Tooltip" />
+                <!-- A check's findings, or the whole check (its evidence, its own controls), in place. -->
+                <controls:Segmented x:Name="ViewTabs" Visibility="Collapsed" SelectionChanged="OnViewTabChanged" />
+                <CheckBox x:Name="ShowHiddenBox" Content="{x:Bind ViewModel.ShowHiddenLabel, Mode=OneWay}"
+                          IsChecked="{x:Bind ViewModel.ShowHidden, Mode=TwoWay}"
+                          Visibility="{x:Bind HasHidden(ViewModel.HiddenCount), Mode=OneWay}"
+                          loc:Loc.Tooltip="Health.ShowHidden.Tooltip" />
+                </StackPanel>
+            </controls:CardShell.HeaderActions>
+
+            <Grid>
+            <Grid x:Name="FindingsView">
+            <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+            <!-- Every action the ticked findings share, each once, kept in sight while the list scrolls. -->
+            <StackPanel Padding="20,0,20,0" Spacing="8">
+                <TextBlock Text="{x:Bind ViewModel.BatchResult, Mode=OneWay}" Style="{StaticResource BodyText}" Foreground="{StaticResource AlkSoftChampagneBrush}"
+                           TextWrapping="Wrap" IsTextSelectionEnabled="False" Visibility="{x:Bind ViewModel.HasBatchResult, Mode=OneWay}" />
+                <controls:AdjustableSection SectionKey="Health.BatchActions" HeadingKey="Health.Section.BatchActions" StartsCollapsed="False" DefaultBodyHeight="120"
+                                            Visibility="{x:Bind ViewModel.HasSelection, Mode=OneWay}">
+                <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="8">
+                        <Button Content="{x:Bind ViewModel.AcceptSelectedLabel, Mode=OneWay}" Command="{x:Bind ViewModel.AcceptSelectedCommand}" Style="{StaticResource RowAction}"
+                                Visibility="{x:Bind ViewModel.HasAcceptable, Mode=OneWay}" loc:Loc.Tooltip="Health.AcceptSelected.Tooltip" />
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.BatchActions}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <controls:WrapPanel Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:HealthBatchAction">
+                                    <Button Content="{x:Bind Label}" Command="{x:Bind Command}" Style="{StaticResource RowAction}"
+                                            loc:Loc.Tooltip="Health.Batch.Tooltip" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+                </controls:AdjustableSection>
+            </StackPanel>
+            <controls:AdjustableSection SectionKey="Health.Findings" HeadingKey="Health.Section.Findings" StartsCollapsed="False" DefaultBodyHeight="560" MaximumWindowShare="0.9"
+                                        Margin="20,0,20,16">
+            <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Padding="0,4,0,0">
+            <StackPanel>
+                <!-- Nothing to read: one line, the shape the mockups give a cleared card. -->
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,24,0,24"
+                            Visibility="{x:Bind ViewModel.IsClear, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource CardTitleText}" Foreground="{StaticResource AlkSuccessOliveGoldBrush}"
+                               loc:Loc.Text="Health.Clear" />
+                    <TextBlock Style="{StaticResource BodyText}" VerticalAlignment="Center" loc:Loc.Text="Health.Clear.Detail" />
+                </StackPanel>
+
+                <TextBlock Text="{x:Bind ViewModel.ErrorsHeading, Mode=OneWay}" Style="{StaticResource CardGroupText}" Margin="0,4,0,0"
+                           Visibility="{x:Bind ViewModel.HasErrors, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ErrorRows}" ItemTemplate="{StaticResource HealthFindingTemplate}" />
+
+                <TextBlock Text="{x:Bind ViewModel.WarningsHeading, Mode=OneWay}" Style="{StaticResource CardGroupText}"
+                           Visibility="{x:Bind ViewModel.HasWarnings, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.WarningRows}" ItemTemplate="{StaticResource HealthFindingTemplate}" />
+
+                <TextBlock Text="{x:Bind ViewModel.NotesHeading, Mode=OneWay}" Style="{StaticResource CardGroupText}"
+                           Visibility="{x:Bind ViewModel.HasNotes, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.NoteRows}" ItemTemplate="{StaticResource HealthFindingTemplate}" />
+            </StackPanel>
+            </ScrollViewer>
+            </controls:AdjustableSection>
+            </StackPanel>
+            </ScrollViewer>
+            </Grid>
+
+            <!-- The check's own page, shown inside this card rather than as a page of its own. -->
+            <Frame x:Name="FamilyFrame" Visibility="Collapsed" />
+            </Grid>
+
+            <controls:CardShell.Footer>
+                <!-- Every acceptance on record, including ones whose finding is not on screen now, each with
+                     Un-Accept, in a collapsible section that runs the width of the Health menu. -->
+                <StackPanel Spacing="4">
+                <controls:AdjustableSection SectionKey="Health.AcceptedFindings" loc:Loc.Tooltip="Health.AcceptedFindings.Tooltip"
+                                            Meta="{x:Bind DiagnosticsViewModel.AcceptedFindingCountText, Mode=OneWay}"
+                                            Heading="{x:Bind AcceptedHeading}"
+                                            Visibility="{x:Bind DiagnosticsViewModel.HasAcceptedFindings, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <Grid RowSpacing="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Button loc:Loc.Content="Health.UnacceptAll" Style="{StaticResource RowAction}" loc:Loc.Tooltip="Health.UnacceptAll.Tooltip">
+                        <Button.Flyout>
+                            <Flyout x:Name="UnacceptAllFlyout">
+                                <Button loc:Loc.Content="Health.UnacceptAll.Confirm" Style="{StaticResource RowAction}" Click="OnUnacceptAllClicked"
+                                        loc:Loc.Tooltip="Health.UnacceptAll.Confirm.Tooltip" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    <ScrollViewer Grid.Row="1" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsRepeater ItemsSource="{x:Bind DiagnosticsViewModel.AcceptedFindingRows}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AcceptedFindingRowViewModel">
+                                    <Grid ColumnSpacing="12" Padding="0,4,16,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind Headline}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" IsTextSelectionEnabled="True" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind RecordedText}" Style="{StaticResource MetaText}"
+                                                   VerticalAlignment="Center" Foreground="{StaticResource AlkMutedTextBrush}" />
+                                        <Button Grid.Column="2" loc:Loc.Content="Health.ForgetButton" Style="{StaticResource RowAction}"
+                                                Click="OnForgetAcceptedFindingClicked" Tag="{x:Bind}" VerticalAlignment="Center"
+                                                loc:Loc.Tooltip="Health.ForgetButton.Tooltip" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </ScrollViewer>
+                    </Grid>
+                </controls:AdjustableSection>
+                <!-- Every risk on record, including ones the current order no longer triggers. -->
+                <controls:AdjustableSection SectionKey="PlayAcceptedRisks" MaximumWindowShare="0.2" loc:Loc.Tooltip="Environment.AcceptedRisksExpander.Tooltip"
+                                            Meta="{x:Bind EnvironmentViewModel.AcceptedRiskCountText, Mode=OneWay}" Heading="{x:Bind AcceptedRisksHeading}"
+                                            Visibility="{x:Bind EnvironmentViewModel.HasAcceptedRisks, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Button loc:Loc.Content="Environment.UnacceptAll" Style="{StaticResource RowAction}" loc:Loc.Tooltip="Environment.UnacceptAll.Tooltip">
+                            <Button.Flyout>
+                                <Flyout x:Name="UnacceptAllRisksFlyout">
+                                    <Button loc:Loc.Content="Environment.UnacceptAll.Confirm" Style="{StaticResource RowAction}" Click="OnUnacceptAllRisksClicked"
+                                            loc:Loc.Tooltip="Environment.UnacceptAll.Confirm.Tooltip" />
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                        <ScrollViewer Grid.Row="1" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsRepeater ItemsSource="{x:Bind EnvironmentViewModel.AcceptedRiskRows}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AcceptedRiskRowViewModel">
+                                        <Grid ColumnSpacing="12" Padding="0,4,16,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind CheckText}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="{x:Bind Headline}" Style="{StaticResource BodyText}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{x:Bind RecordedText}" Style="{StaticResource BodyText}" TextWrapping="Wrap" Foreground="{StaticResource AlkMutedTextBrush}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" loc:Loc.Content="Environment.AcceptedRiskRow.ForgetButton" Style="{StaticResource RowAction}"
+                                                    Click="OnForgetAcceptedRiskClicked" Tag="{x:Bind}" VerticalAlignment="Top"
+                                                    loc:Loc.Tooltip="Environment.AcceptedRiskRow.ForgetButton.Tooltip" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </ScrollViewer>
+                    </Grid>
+                </controls:AdjustableSection>
+                </StackPanel>
+            </controls:CardShell.Footer>
+        </controls:CardShell>
+    </Grid>
+</Page>
