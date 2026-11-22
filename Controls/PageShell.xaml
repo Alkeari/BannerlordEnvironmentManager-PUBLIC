@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Controls.PageShell"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    mc:Ignorable="d">
+
+    <!-- The page frame (redesign step 2). The head is the title, the one line of state that matters
+         beside it, and the page's own actions; then an optional commands row; then the body, which is a
+         grid of cards and never scrolls: a card is the only thing that scrolls, so there is never a bar
+         inside a bar. A page not yet rebuilt on cards sets BodyScrolls True and keeps its old scroller. -->
+    <Grid Padding="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <controls:PageHeader x:Name="IdentityBand" Title="{x:Bind Title, Mode=OneWay}"
+                             Blurb="{x:Bind Blurb, Mode=OneWay}"
+                             TitleKey="{x:Bind TitleKey, Mode=OneWay}" BlurbKey="{x:Bind BlurbKey, Mode=OneWay}"
+                             Status="{x:Bind Status, Mode=OneWay}"
+                             Actions="{x:Bind Actions, Mode=OneWay}"
+                             Margin="0,0,0,8" />
+
+        <ContentPresenter x:Name="CommandsHost" Grid.Row="1" Content="{x:Bind Commands, Mode=OneWay}"
+                          Margin="0,0,0,8" />
+
+        <!-- Two hosts for the one body, and only ever one of them holds it. A ScrollViewer measures its
+             child with an unbounded height, so a star row inside it collapses to its content and a card
+             can never keep its share; the grid host hands the body the frame's own height instead. -->
+        <Grid x:Name="BodyRegion" Grid.Row="2">
+            <ScrollViewer x:Name="ContentScroller" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed" />
+            <ContentPresenter x:Name="BodyHost" Content="{x:Bind Body, Mode=OneWay}"
+                              HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        </Grid>
+    </Grid>
+</UserControl>

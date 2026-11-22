@@ -1,0 +1,60 @@
+namespace BannerlordEnvironmentManager.Views
+{
+    using BannerlordEnvironmentManager.Core.Localization;
+
+    public sealed partial class ModOverlapsPage : Page
+    {
+        public ModOverlapsPage()
+        {
+            InitializeComponent();
+
+            Unloaded += OnPageUnloaded;
+            DiagnosticsViewModel.EnvironmentTabRequested += OnEnvironmentTabRequested;
+        }
+
+        public DiagnosticsViewModel DiagnosticsViewModel => ShellViewModels.Instance.Diagnostics;
+
+        public ShellNavigationSettings Navigation => ShellViewModels.Instance.NavigationSettings;
+
+        // The overlap comparison is part of the same install check, so opening this page fills it the
+        // same way opening Install Checks does.
+        private void OnPageLoaded(object sender, RoutedEventArgs e)
+        {
+            _ = sender;
+            _ = e;
+
+            _ = DiagnosticsViewModel.CheckInstallCommand.ExecuteAsync(null);
+        }
+
+        private void OnPageUnloaded(object sender, RoutedEventArgs e)
+        {
+            Unloaded -= OnPageUnloaded;
+            DiagnosticsViewModel.EnvironmentTabRequested -= OnEnvironmentTabRequested;
+        }
+
+        private void OnEnvironmentTabRequested() => Frame?.Navigate(typeof(EnvironmentPage));
+
+        private void OnAcceptFindingConfirmed(Controls.FindingRow sender, object? item)
+        {
+            _ = sender;
+
+            if (item is KnownIssueRowViewModel row)
+                row.AcceptRisk();
+        }
+
+        private void OnUndoFindingRequested(Controls.FindingRow sender, object? item)
+        {
+            _ = sender;
+
+            if (item is KnownIssueRowViewModel row)
+                DiagnosticsViewModel.UndoAcceptFinding(row);
+        }
+
+        private void OnKnownIssueContextRequested(UIElement sender, Microsoft.UI.Xaml.Input.ContextRequestedEventArgs e)
+        {
+            _ = sender;
+
+            DiagnosticsViewModel.SetContextIssue(ContextRow.Resolve<KnownIssueRowViewModel>(e.OriginalSource));
+        }
+    }
+}

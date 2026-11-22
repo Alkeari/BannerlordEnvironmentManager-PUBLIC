@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Page
+    x:Class="BannerlordEnvironmentManager.Views.TroubleshootPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    xmlns:converters="using:BannerlordEnvironmentManager.Converters"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    </Page.Resources>
+
+    <!-- Troubleshoot: Health and Forensics as one destination that answers "what's wrong?" in three tabs.
+         Problems is what could go wrong (the checks), Crashes is what went wrong (the evidence), and
+         Find the Culprit is the experiment that settles it. The header carries the one action each of the
+         first two tabs has: a small Re-run on Problems and the one Scan on Crashes. -->
+    <controls:PageShell TitleKey="Troubleshoot.Title" Status="{x:Bind ViewModel.HealthSummary, Mode=OneWay}"
+                        BlurbKey="Troubleshoot.Blurb">
+        <controls:PageShell.Actions>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.IsRunningAllChecks, Mode=OneWay}"
+                              Visibility="{x:Bind ViewModel.IsRunningAllChecks, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                <ProgressRing x:Name="ScanRing" Width="16" Height="16" IsActive="{x:Bind Diagnostics.IsBusy, Mode=OneWay}"
+                              Visibility="Collapsed" />
+                <Button x:Name="CulpritOpenButton" loc:Loc.Content="Troubleshoot.Tab.Culprit" Click="OnOpenCulprit"
+                        Style="{StaticResource RowAction}" loc:Loc.Tooltip="Troubleshoot.Tab.Culprit.Tooltip" Visibility="Collapsed" />
+                <Button x:Name="CulpritBackButton" loc:Loc.Content="Troubleshoot.Culprit.Back" Click="OnBackToCrashes"
+                        Style="{StaticResource RowAction}" loc:Loc.Tooltip="Troubleshoot.Culprit.Back.Tooltip" Visibility="Collapsed" />
+                <Button x:Name="ScanButton" loc:Loc.Content="Troubleshoot.Scan" Click="OnScanAll"
+                        Style="{StaticResource RowPrimaryAction}" loc:Loc.Tooltip="Troubleshoot.Scan.Tooltip" Visibility="Collapsed" />
+            </StackPanel>
+        </controls:PageShell.Actions>
+        <controls:PageShell.Commands>
+            <controls:Segmented x:Name="Tabs" SelectionChanged="OnTabChanged" />
+        </controls:PageShell.Commands>
+
+        <Grid>
+            <!-- Problems and Crashes bring their own cards. -->
+            <Frame x:Name="TabFrame" />
+
+            <!-- The experiment: the one way in to the bisection. -->
+            <controls:CardShell x:Name="CulpritCard" BodyScrolls="False" BodyPadded="False" Visibility="Collapsed">
+                <Frame x:Name="CulpritFrame" />
+            </controls:CardShell>
+        </Grid>
+    </controls:PageShell>
+</Page>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<UserControl
+    x:Class="BannerlordEnvironmentManager.Controls.FindingRow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:loc="using:BannerlordEnvironmentManager.Localization"
+    xmlns:controls="using:BannerlordEnvironmentManager.Controls"
+    mc:Ignorable="d">
+
+    <!-- One finding, the same on every page (proposal 1.6, with the owner's 23:32 2026-10-29 rule):
+         glyph, a headline that says what happened, a Steel Gray line that says what to do, and the
+         actions at the right, Accept the Risk always last. Accepting is two steps done inline: the
+         first press asks, the second accepts. An accepted finding stays exactly where it was, marked
+         Accepted, with Undo; it is never moved into a separate list and never drops out of a count. -->
+    <Grid x:Name="Root" Padding="0,10,0,10" ColumnSpacing="12" RowSpacing="8" SizeChanged="OnRootSizeChanged">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock x:Name="GlyphText" Style="{StaticResource FindingGlyphText}" VerticalAlignment="Top" />
+
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock x:Name="HeadlineText" Style="{StaticResource FindingHeadlineText}" />
+            <ScrollViewer x:Name="DetailViewer" MaxHeight="{x:Bind DetailMaxHeight, Mode=OneWay}"
+                          VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+                <TextBlock x:Name="DetailText" Style="{StaticResource FindingDetailText}" TextWrapping="Wrap" />
+            </ScrollViewer>
+            <TextBlock x:Name="EvidenceText" Style="{StaticResource MonoText}" TextWrapping="Wrap" Visibility="Collapsed" />
+        </StackPanel>
+
+        <controls:WrapPanel x:Name="OpenActions" Grid.Column="2" Spacing="8" VerticalAlignment="Center">
+            <ContentPresenter x:Name="FixHost" Content="{x:Bind FixContent, Mode=OneWay}" VerticalAlignment="Center" />
+            <Button x:Name="IgnoreOnceButton" Style="{StaticResource RowAction}" Click="OnIgnoreOnceClicked" Visibility="Collapsed"
+                    loc:Loc.Content="Controls.FindingRow.IgnoreOnce" loc:Loc.Tooltip="Controls.FindingRow.IgnoreOnce.Tooltip" />
+            <Button x:Name="AcceptButton" Style="{StaticResource RowAction}" Click="OnAcceptClicked"
+                    loc:Loc.Content="Controls.FindingRow.Accept" loc:Loc.Tooltip="Controls.FindingRow.Accept.Tooltip" />
+        </controls:WrapPanel>
+
+        <StackPanel x:Name="ConfirmActions" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                    Visibility="Collapsed">
+            <Button x:Name="ConfirmButton" Style="{StaticResource RowPrimaryAction}" Click="OnConfirmClicked"
+                    loc:Loc.Content="Controls.FindingRow.Confirm" loc:Loc.Tooltip="Controls.FindingRow.Confirm.Tooltip" />
+            <Button Style="{StaticResource QuietAction}" Click="OnCancelClicked"
+                    loc:Loc.Content="Controls.FindingRow.Cancel" loc:Loc.Tooltip="Controls.FindingRow.Cancel.Tooltip" />
+        </StackPanel>
+
+        <StackPanel x:Name="AcceptedActions" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                    Visibility="Collapsed">
+            <Border Style="{StaticResource Mark}">
+                <TextBlock Style="{StaticResource MarkText}" loc:Loc.Text="Controls.FindingRow.Accepted" />
+            </Border>
+            <Button x:Name="UndoButton" Style="{StaticResource QuietAction}" Click="OnUndoClicked"
+                    loc:Loc.Content="Controls.FindingRow.Undo" loc:Loc.Tooltip="Controls.FindingRow.Undo.Tooltip" />
+        </StackPanel>
+    </Grid>
+</UserControl>

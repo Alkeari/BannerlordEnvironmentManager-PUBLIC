@@ -1,0 +1,35 @@
+using BannerlordEnvironmentManager.Core.Diagnostics;
+
+namespace BannerlordEnvironmentManager.ViewModels
+{
+    // One accepted finding, from any source that shares AcceptedFindingStore: an install check, a mod
+    // safety alarm, a boot check result. Read straight from the store rather than from a live check, so
+    // this list is complete even for a family whose page has not been reopened since the finding was
+    // accepted.
+    public sealed class AcceptedFindingRowViewModel
+    {
+        private readonly Action<AcceptedFindingRowViewModel> forget;
+
+        public AcceptedFindingRowViewModel(AcceptedFindingEntry entry, Action<AcceptedFindingRowViewModel> forget)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+
+            Finding = entry.First;
+            Keys = entry.Keys;
+            this.forget = forget;
+        }
+
+        public AcceptedFinding Finding { get; }
+
+        // Every key this one finding is stored under; forgetting it forgets them all.
+        public IReadOnlyList<string> Keys { get; }
+
+        public string Headline => Finding.Headline;
+
+        public string CategoryText => Finding.Category;
+
+        public string RecordedText => $"Accepted {Finding.RecordedUtc.ToLocalTime():d}";
+
+        public void Forget() => forget(this);
+    }
+}
